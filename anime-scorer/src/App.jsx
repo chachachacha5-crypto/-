@@ -301,7 +301,7 @@ export default function App() {
 
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -314,14 +314,17 @@ export default function App() {
       );
 
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error?.message || `APIエラー (${res.status})`);
+      }
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (!text) throw new Error("No response");
+      if (!text) throw new Error("レスポンスが空です");
 
       const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const parsed = JSON.parse(cleaned);
       setResult(parsed);
-    } catch {
-      setError("分析に失敗しました。入力を確認してください。");
+    } catch (e) {
+      setError(`分析に失敗しました: ${e.message}`);
     } finally {
       setLoading(false);
     }
