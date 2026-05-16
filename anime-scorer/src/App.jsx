@@ -300,27 +300,24 @@ export default function App() {
     setError("");
 
     try {
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": apiKey,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true",
-        },
-        body: JSON.stringify({
-          model: "claude-opus-4-7",
-          max_tokens: 1000,
-          system: SYSTEM_PROMPT,
-          messages: [{ role: "user", content: `商品情報: ${input}` }],
-        }),
-      });
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+            contents: [{ role: "user", parts: [{ text: `商品情報: ${input}` }] }],
+            generationConfig: { maxOutputTokens: 1000 },
+          }),
+        }
+      );
 
       const data = await res.json();
-      const textBlock = data.content?.find((b) => b.type === "text");
-      if (!textBlock) throw new Error("No text block");
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (!text) throw new Error("No response");
 
-      const cleaned = textBlock.text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
+      const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
       const parsed = JSON.parse(cleaned);
       setResult(parsed);
     } catch {
@@ -365,14 +362,17 @@ export default function App() {
 
         {/* API Key */}
         <div style={styles.section}>
-          <label style={styles.label}>API KEY</label>
+          <label style={styles.label}>GEMINI API KEY（無料）</label>
           <input
             type="password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
-            placeholder="sk-ant-..."
+            placeholder="AIza..."
             style={styles.input}
           />
+          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px", letterSpacing: "0.5px" }}>
+            キーの取得：aistudio.google.com → 「Get API key」→ 「APIキーを作成」
+          </div>
         </div>
 
         {/* Input */}
