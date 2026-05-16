@@ -339,17 +339,27 @@ export default function App() {
   const vc = result ? VERDICT_CONFIG[result.verdict] : null;
 
   return (
-    <div style={styles.app}>
+    <div className="as-app" style={styles.app}>
       <style>{`
         @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
         * { box-sizing: border-box; }
         body { margin: 0; }
+        @media (max-width: 480px) {
+          .as-app { padding: 24px 16px 40px !important; }
+          .as-header-title { font-size: 16px !important; letter-spacing: 2px !important; }
+          .as-verdict-label { font-size: 22px !important; }
+          .as-verdict-score { font-size: 42px !important; }
+          .as-grid-2col { grid-template-columns: 1fr !important; }
+          .as-preset-btn { font-size: 12px !important; padding: 10px 14px !important; }
+          .as-analyze-btn { font-size: 13px !important; padding: 16px !important; }
+          .as-textarea { min-height: 80px !important; }
+        }
       `}</style>
 
       <div style={styles.container}>
         {/* Header */}
         <div style={styles.header}>
-          <h1 style={styles.headerTitle}>ANIME GOODS 需要スコアリング</h1>
+          <h1 className="as-header-title" style={styles.headerTitle}>ANIME GOODS 需要スコアリング</h1>
           <p style={styles.headerSub}>Overseas Demand Analysis Tool</p>
         </div>
 
@@ -373,6 +383,7 @@ export default function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="例：ワンピース ジャンプフェスタ限定 ルフィ フィギュア 2024 会場販売のみ"
+            className="as-textarea"
             style={styles.textarea}
           />
         </div>
@@ -382,7 +393,7 @@ export default function App() {
           <label style={styles.label}>PRESET</label>
           <div style={styles.presetRow}>
             {PRESETS.map((p) => (
-              <button key={p.label} onClick={() => setInput(p.value)} style={styles.presetBtn}>
+              <button key={p.label} onClick={() => setInput(p.value)} className="as-preset-btn" style={styles.presetBtn}>
                 {p.label}
               </button>
             ))}
@@ -394,6 +405,7 @@ export default function App() {
           <button
             onClick={analyze}
             disabled={loading}
+            className="as-analyze-btn"
             style={{ ...styles.analyzeBtn, ...(loading ? { opacity: 0.5, cursor: "not-allowed" } : {}) }}
           >
             {loading ? "[ 分析中... ]" : "[ 需要スコアを算出する ]"}
@@ -408,9 +420,9 @@ export default function App() {
           <div style={styles.resultArea}>
             {/* Verdict Banner */}
             <div style={{ ...styles.verdictBanner, backgroundColor: vc.bg, border: `1px solid ${vc.border}` }}>
-              <div style={{ ...styles.verdictLabel, color: vc.color }}>{vc.label}</div>
+              <div className="as-verdict-label" style={{ ...styles.verdictLabel, color: vc.color }}>{vc.label}</div>
               <div style={{ textAlign: "right" }}>
-                <div style={{ ...styles.verdictScoreNum, color: vc.color }}>{result.totalScore}</div>
+                <div className="as-verdict-score" style={{ ...styles.verdictScoreNum, color: vc.color }}>{result.totalScore}</div>
                 <div style={{ ...styles.verdictScoreLabel, color: vc.color }}>/ 100 POINTS</div>
               </div>
             </div>
@@ -447,7 +459,7 @@ export default function App() {
             </div>
 
             {/* Multiplier & Markets */}
-            <div style={styles.grid2col}>
+            <div className="as-grid-2col" style={styles.grid2col}>
               <Cell label="推定転売倍率" value={result.estimatedResaleMultiplier} accent="#aa88ff" />
               <Cell label="狙い目マーケット" value={result.targetMarkets.join(" · ")} accent="#66ccff" />
             </div>
