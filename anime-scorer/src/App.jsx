@@ -308,7 +308,7 @@ export default function App() {
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
             contents: [{ role: "user", parts: [{ text: `商品情報: ${input}` }] }],
-            generationConfig: { maxOutputTokens: 1000 },
+            generationConfig: { maxOutputTokens: 2048, responseMimeType: "application/json" },
           }),
         }
       );
@@ -321,7 +321,10 @@ export default function App() {
       if (!text) throw new Error("レスポンスが空です");
 
       const cleaned = text.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
-      const parsed = JSON.parse(cleaned);
+      const jsonStart = cleaned.indexOf("{");
+      const jsonEnd = cleaned.lastIndexOf("}");
+      if (jsonStart === -1 || jsonEnd === -1) throw new Error("JSONが見つかりません");
+      const parsed = JSON.parse(cleaned.slice(jsonStart, jsonEnd + 1));
       setResult(parsed);
     } catch (e) {
       setError(`分析に失敗しました: ${e.message}`);
