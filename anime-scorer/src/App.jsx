@@ -2,6 +2,7 @@ import { useState } from "react";
 
 const SYSTEM_PROMPT = `あなたはアニメグッズの海外需要を分析する専門家です。
 ユーザーが入力した商品情報を元に、以下の4軸で需要スコアを算出してください。
+eBayの落札実績データが提供された場合は、それを最優先の根拠として分析に活用してください。
 
 必ずJSON形式のみで返答してください（マークダウン不要）：
 {
@@ -281,12 +282,37 @@ function Cell({ label, value, accent }) {
   );
 }
 
+async function fetchEbaySold(keywords, appId) {
+  const params = new URLSearchParams({
+    "OPERATION-NAME": "findCompletedItems",
+    "SERVICE-VERSION": "1.0.0",
+    "SECURITY-APPNAME": appId,
+    "RESPONSE-DATA-FORMAT": "JSON",
+    "keywords": keywords,
+    "itemFilter(0).name": "SoldItemsOnly",
+    "itemFilter(0).value": "true",
+    "paginationInput.entriesPerPage": "8",
+    "sortOrder": "EndTimeSoonest",
+  });
+  const res = await fetch(`https://svcs.ebay.com/services/search/FindingService/v1?${params}`);
+  const data = await res.json();
+  const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
+  return items.map(item => ({
+    title: item.title?.[0],
+    price: item.sellingStatus?.[0]?.currentPrice?.[0]?.["__value__"],
+    currency: item.sellingStatus?.[0]?.currentPrice?.[0]?.["@currencyId"],
+    condition: item.condition?.[0]?.conditionDisplayName?.[0],
+  }));
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState("");
+  const [ebayAppId, setEbayAppId] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [ebayStatus, setEbayStatus] = useState("");
 
   async function analyze() {
     if (!apiKey) {
@@ -298,8 +324,28 @@ export default function App() {
     setLoading(true);
     setResult(null);
     setError("");
+    setEbayStatus("");
+
+    let ebayContext = "";
+    if (ebayAppId) {
+      try {
+        setEbayStatus("eBay落札データ取得中...");
+        const sold = await fetchEbaySold(input, ebayAppId);
+        if (sold.length > 0) {
+          ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
+            (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "状態不明"}）`
+          ).join("\n");
+          setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
+        } else {
+          setEbayStatus("eBay: 類似落札データなし");
+        }
+      } catch {
+        setEbayStatus("eBay取得失敗（分析は続行）");
+      }
+    }
 
     try {
+      const userMessage = `商品情報: ${input}${ebayContext}`;
       const res = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
         {
@@ -307,7 +353,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
-            contents: [{ role: "user", parts: [{ text: `商品情報: ${input}` }] }],
+            contents: [{ role: "user", parts: [{ text: userMessage }] }],
             generationConfig: { maxOutputTokens: 2048, responseMimeType: "application/json" },
           }),
         }
@@ -379,6 +425,23 @@ export default function App() {
           <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px", letterSpacing: "0.5px" }}>
             キーの取得：aistudio.google.com → 「Get API key」→ 「APIキーを作成」
           </div>
+        </div>
+
+        {/* eBay App ID */}
+        <div style={styles.section}>
+          <label style={styles.label}>EBAY APP ID（任意・落札実績を取得）</label>
+          <input
+            type="password"
+            value={ebayAppId}
+            onChange={(e) => setEbayAppId(e.target.value)}
+            placeholder="xxxx-xxxx-xxxx-xxxx"
+            style={styles.input}
+          />
+          {ebayStatus && (
+            <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginTop: "6px", letterSpacing: "0.5px" }}>
+              {ebayStatus}
+            </div>
+          )}
         </div>
 
         {/* Input */}
