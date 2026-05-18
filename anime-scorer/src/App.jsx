@@ -294,7 +294,8 @@ async function fetchEbaySold(keywords, appId) {
     "paginationInput.entriesPerPage": "8",
     "sortOrder": "EndTimeSoonest",
   });
-  const res = await fetch(`https://svcs.ebay.com/services/search/FindingService/v1?${params}`);
+  const ebayUrl = `https://svcs.ebay.com/services/search/FindingService/v1?${params}`;
+  const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`);
   const data = await res.json();
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
   return items.map(item => ({
