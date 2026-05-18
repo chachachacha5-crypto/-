@@ -340,8 +340,8 @@ export default function App() {
         } else {
           setEbayStatus("eBay: 類似落札データなし");
         }
-      } catch {
-        setEbayStatus("eBay取得失敗（分析は続行）");
+      } catch (e) {
+        setEbayStatus(`eBay取得失敗: ${e.message}`);
       }
     }
 
