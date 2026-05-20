@@ -309,6 +309,7 @@ async function fetchEbaySold(keywords, appId) {
 export default function App() {
   const [apiKey, setApiKey] = useState("");
   const [ebayAppId, setEbayAppId] = useState("");
+  const [ebayKeyword, setEbayKeyword] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -331,7 +332,7 @@ export default function App() {
     if (ebayAppId) {
       try {
         setEbayStatus("eBay落札データ取得中...");
-        const sold = await fetchEbaySold(input, ebayAppId);
+        const sold = await fetchEbaySold(ebayKeyword || input, ebayAppId);
         if (sold.length > 0) {
           ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
             (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "状態不明"}）`
@@ -438,8 +439,18 @@ export default function App() {
             placeholder="xxxx-xxxx-xxxx-xxxx"
             style={styles.input}
           />
+          <input
+            type="text"
+            value={ebayKeyword}
+            onChange={(e) => setEbayKeyword(e.target.value)}
+            placeholder="例: Pokemon GU T-shirt（英語で入力）"
+            style={{ ...styles.input, marginTop: "8px" }}
+          />
+          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px" }}>
+            eBayは英語で検索されます。英語キーワードを入力してください。
+          </div>
           {ebayStatus && (
-            <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginTop: "6px", letterSpacing: "0.5px" }}>
+            <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginTop: "6px" }}>
               {ebayStatus}
             </div>
           )}
