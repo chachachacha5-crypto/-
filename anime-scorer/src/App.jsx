@@ -309,12 +309,27 @@ async function fetchEbaySold(keywords, appId) {
 export default function App() {
   const [apiKey, setApiKey] = useState("");
   const [ebayAppId, setEbayAppId] = useState("");
-  const [ebayKeyword, setEbayKeyword] = useState("");
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
   const [ebayStatus, setEbayStatus] = useState("");
+
+  async function translateToEbayKeywords(text) {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: `以下の日本語の商品情報から、eBayで検索するための英語キーワードを5単語以内で返してください。キーワードのみ返答してください（説明不要）。\n商品情報: ${text}` }] }],
+          generationConfig: { maxOutputTokens: 50 },
+        }),
+      }
+    );
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || text;
+  }
 
   async function analyze() {
     if (!apiKey) {
@@ -331,8 +346,10 @@ export default function App() {
     let ebayContext = "";
     if (ebayAppId) {
       try {
-        setEbayStatus("eBay落札データ取得中...");
-        const sold = await fetchEbaySold(ebayKeyword || input, ebayAppId);
+        setEbayStatus("キーワードを英語に変換中...");
+        const enKeyword = await translateToEbayKeywords(input);
+        setEbayStatus(`eBay検索中: "${enKeyword}"`);
+        const sold = await fetchEbaySold(enKeyword, ebayAppId);
         if (sold.length > 0) {
           ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
             (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "状態不明"}）`
@@ -439,15 +456,8 @@ export default function App() {
             placeholder="xxxx-xxxx-xxxx-xxxx"
             style={styles.input}
           />
-          <input
-            type="text"
-            value={ebayKeyword}
-            onChange={(e) => setEbayKeyword(e.target.value)}
-            placeholder="例: Pokemon GU T-shirt（英語で入力）"
-            style={{ ...styles.input, marginTop: "8px" }}
-          />
           <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px" }}>
-            eBayは英語で検索されます。英語キーワードを入力してください。
+            商品情報を自動で英語に変換してeBayを検索します
           </div>
           {ebayStatus && (
             <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginTop: "6px" }}>
