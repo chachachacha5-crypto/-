@@ -335,12 +335,14 @@ export default function App() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ role: "user", parts: [{ text: `以下の日本語の商品情報から、eBayで検索するための英語キーワードを5単語以内で返してください。キーワードのみ返答してください（説明不要）。\n商品情報: ${text}` }] }],
-          generationConfig: { maxOutputTokens: 50 },
+          generationConfig: { maxOutputTokens: 50, thinkingConfig: { thinkingBudget: 0 } },
         }),
       }
     );
     const data = await res.json();
-    const translated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    const textPart = parts.find(p => !p.thought);
+    const translated = textPart?.text?.trim();
     if (!translated) throw new Error("翻訳失敗");
     return translated;
   }
