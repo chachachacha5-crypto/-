@@ -293,11 +293,17 @@ async function fetchEbaySold(keywords, appId) {
     "sortOrder": "EndTimeSoonest",
   });
   const ebayUrl = `https://svcs.ebay.com/services/search/FindingService/v1?${params}`;
-  const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`);
-  const data = await res.json();
+  const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(ebayUrl)}`);
+  const rawText = await res.text();
+  let data;
+  try {
+    data = JSON.parse(rawText);
+  } catch {
+    throw new Error(`レスポンス解析失敗: ${rawText.slice(0, 80)}`);
+  }
   const ack = data.findCompletedItemsResponse?.[0]?.ack?.[0];
   const count = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.["@count"];
-  if (ack !== "Success") throw new Error(`eBay応答エラー: ${ack} (count:${count})`);
+  if (ack !== "Success") throw new Error(`eBay応答エラー: ${ack} / keys: ${Object.keys(data).join(",")}`);
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
   return { count, items: items.map(item => ({
     title: item.title?.[0],
