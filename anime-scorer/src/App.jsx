@@ -295,13 +295,16 @@ async function fetchEbaySold(keywords, appId) {
   const ebayUrl = `https://svcs.ebay.com/services/search/FindingService/v1?${params}`;
   const res = await fetch(`https://corsproxy.io/?url=${encodeURIComponent(ebayUrl)}`);
   const data = await res.json();
+  const ack = data.findCompletedItemsResponse?.[0]?.ack?.[0];
+  const count = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.["@count"];
+  if (ack !== "Success") throw new Error(`eBay応答エラー: ${ack} (count:${count})`);
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
-  return items.map(item => ({
+  return { count, items: items.map(item => ({
     title: item.title?.[0],
     price: item.sellingStatus?.[0]?.currentPrice?.[0]?.["__value__"],
     currency: item.sellingStatus?.[0]?.currentPrice?.[0]?.["@currencyId"],
     condition: item.condition?.[0]?.conditionDisplayName?.[0],
-  }));
+  }))};
 }
 
 export default function App() {
@@ -354,14 +357,14 @@ export default function App() {
           enKeyword = input.replace(/[^\x20-\x7E]/g, "").trim() || "anime goods";
         }
         setEbayStatus(`eBay検索中: "${enKeyword}"`);
-        const sold = await fetchEbaySold(enKeyword, ebayAppId);
+        const { items: sold, count } = await fetchEbaySold(enKeyword, ebayAppId);
         if (sold.length > 0) {
           ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
             (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "状態不明"}）`
           ).join("\n");
           setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
         } else {
-          setEbayStatus("eBay: 類似落札データなし");
+          setEbayStatus(`eBay: データなし（count:${count}, keyword:"${enKeyword}"）`);
         }
       } catch (e) {
         setEbayStatus(`eBay取得失敗: ${e.message}`);
