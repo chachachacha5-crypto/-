@@ -303,7 +303,12 @@ async function fetchEbaySold(keywords, appId) {
   }
   const ack = data.findCompletedItemsResponse?.[0]?.ack?.[0];
   const count = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.["@count"];
-  if (ack !== "Success") throw new Error(`eBay応答エラー: ${ack} / keys: ${Object.keys(data).join(",")}`);
+  if (ack !== "Success") {
+    const ebayMsg = data.errorMessage?.[0]?.error?.[0]?.message?.[0]
+      || data.findCompletedItemsResponse?.[0]?.errorMessage?.[0]?.error?.[0]?.message?.[0]
+      || JSON.stringify(data).slice(0, 120);
+    throw new Error(`eBay: ${ebayMsg}`);
+  }
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
   return { count, items: items.map(item => ({
     title: item.title?.[0],
