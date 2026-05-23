@@ -289,8 +289,6 @@ async function fetchEbaySold(keywords, appId) {
     "SECURITY-APPNAME": appId,
     "RESPONSE-DATA-FORMAT": "JSON",
     "keywords": keywords,
-    "itemFilter(0).name": "SoldItemsOnly",
-    "itemFilter(0).value": "true",
     "paginationInput.entriesPerPage": "8",
     "sortOrder": "EndTimeSoonest",
   });
@@ -328,7 +326,9 @@ export default function App() {
       }
     );
     const data = await res.json();
-    return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || text;
+    const translated = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+    if (!translated) throw new Error("翻訳失敗");
+    return translated;
   }
 
   async function analyze() {
@@ -347,7 +347,12 @@ export default function App() {
     if (ebayAppId) {
       try {
         setEbayStatus("キーワードを英語に変換中...");
-        const enKeyword = await translateToEbayKeywords(input);
+        let enKeyword;
+        try {
+          enKeyword = await translateToEbayKeywords(input);
+        } catch {
+          enKeyword = input.replace(/[^\x20-\x7E]/g, "").trim() || "anime goods";
+        }
         setEbayStatus(`eBay検索中: "${enKeyword}"`);
         const sold = await fetchEbaySold(enKeyword, ebayAppId);
         if (sold.length > 0) {
