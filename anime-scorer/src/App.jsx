@@ -282,146 +282,14 @@ function Cell({ label, value, accent }) {
   );
 }
 
-async function fetchViaProxy(targetUrl) {
-  const proxies = [
-    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
-    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
-    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
-  ];
-  let lastErr;
-  for (const proxyUrl of proxies) {
-    try {
-      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
-      if (res.ok) return res;
-    } catch (e) {
-      lastErr = e;
-    }
-  }
-  throw lastErr || new Error("全プロキシ接続失敗");
-}
-
-function getEbayCache(keyword) {
-  try {
-    const raw = sessionStorage.getItem("ebay:" + keyword.toLowerCase());
-    if (!raw) return null;
-    const { data, ts } = JSON.parse(raw);
-    if (Date.now() - ts < 3600000) return data;
-  } catch {}
-  return null;
-}
-
-function setEbayCache(keyword, data) {
-  try {
-    sessionStorage.setItem("ebay:" + keyword.toLowerCase(), JSON.stringify({ data, ts: Date.now() }));
-  } catch {}
-}
-
-async function fetchEbaySold(keywords, appId) {
-  const cached = getEbayCache(keywords);
-  if (cached) return cached;
-
-  const params = new URLSearchParams({
-    "OPERATION-NAME": "findCompletedItems",
-    "SERVICE-VERSION": "1.0.0",
-    "SECURITY-APPNAME": appId,
-    "RESPONSE-DATA-FORMAT": "JSON",
-    "keywords": keywords,
-    "paginationInput.entriesPerPage": "8",
-    "sortOrder": "EndTimeSoonest",
-  });
-  const ebayUrl = `https://svcs.ebay.com/services/search/FindingService/v1?${params}`;
-  const res = await fetchViaProxy(ebayUrl);
-  const rawText = await res.text();
-  let data;
-  try { data = JSON.parse(rawText); } catch { throw new Error("parse error"); }
-  const ack = data.findCompletedItemsResponse?.[0]?.ack?.[0];
-  if (ack !== "Success") throw new Error("api error");
-  const count = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.["@count"];
-  const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
-  const result = { count, items: items.map(item => ({
-    title: item.title?.[0],
-    price: item.sellingStatus?.[0]?.currentPrice?.[0]?.["__value__"],
-    currency: item.sellingStatus?.[0]?.currentPrice?.[0]?.["@currencyId"],
-    condition: item.condition?.[0]?.conditionDisplayName?.[0],
-  }))};
-  setEbayCache(keywords, result);
-  return result;
-}
-
-async function fetchEbayScraped(keywords) {
-  const cached = getEbayCache("rss:" + keywords);
-  if (cached) return cached;
-
-  // Use eBay RSS feed (designed for bots, no API key needed)
-  // Try sold items first, then active listings
-  const urls = [
-    `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&LH_Sold=1&LH_Complete=1&_rss=1`,
-    `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&_rss=1`,
-  ];
-
-  for (const url of urls) {
-    try {
-      const res = await fetchViaProxy(url);
-      const xml = await res.text();
-      if (!xml.includes("<item>") && !xml.includes("<item ")) continue;
-
-      const items = [];
-      for (const m of xml.matchAll(/<item>([\s\S]+?)<\/item>/g)) {
-        const chunk = m[1];
-        const titleM = chunk.match(/<title[^>]*><!\[CDATA\[([\s\S]+?)\]\]><\/title>/)
-                    || chunk.match(/<title[^>]*>([\s\S]+?)<\/title>/);
-        const title = titleM?.[1]?.trim();
-
-        // Price from ebay namespace element or title text
-        const priceM = chunk.match(/<[^>]*:price[^>]*>\s*([\d.]+)\s*<\//)
-                    || chunk.match(/\$([\d,]+\.?\d{0,2})/);
-        const price = priceM ? parseFloat(priceM[1].replace(/,/g, "")) : null;
-
-        if (title && price && price > 0) {
-          items.push({ title: title.slice(0, 80), price: price.toFixed(2), currency: "USD", condition: url.includes("LH_Sold") ? "Sold" : "Listed" });
-        }
-        if (items.length >= 8) break;
-      }
-
-      if (items.length > 0) {
-        const result = { count: String(items.length), items };
-        setEbayCache("rss:" + keywords, result);
-        return result;
-      }
-    } catch {}
-  }
-
-  return { count: "0", items: [] };
-}
 
 export default function App() {
   const [apiKey, setApiKey] = useState("");
-  const [ebayAppId, setEbayAppId] = useState("");  // kept for optional API boost
   const [input, setInput] = useState("");
+  const [ebayPrices, setEbayPrices] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
-  const [ebayStatus, setEbayStatus] = useState("");
-
-  async function translateToEbayKeywords(text) {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: `以下の日本語の商品情報から、eBayで検索するための英語キーワードを5単語以内で返してください。キーワードのみ返答してください（説明不要）。\n商品情報: ${text}` }] }],
-          generationConfig: { maxOutputTokens: 50, thinkingConfig: { thinkingBudget: 0 } },
-        }),
-      }
-    );
-    const data = await res.json();
-    const parts = data.candidates?.[0]?.content?.parts || [];
-    const textPart = parts.find(p => !p.thought);
-    const translated = textPart?.text?.trim();
-    if (!translated) throw new Error("翻訳失敗");
-    return translated;
-  }
 
   async function analyze() {
     if (!apiKey) {
@@ -433,48 +301,10 @@ export default function App() {
     setLoading(true);
     setResult(null);
     setError("");
-    setEbayStatus("");
 
-    let ebayContext = "";
-    try {
-      setEbayStatus("キーワードを英語に変換中...");
-      let enKeyword;
-      try {
-        enKeyword = await translateToEbayKeywords(input);
-      } catch {
-        enKeyword = input.replace(/[^\x20-\x7E]/g, "").trim() || "anime goods";
-      }
-      setEbayStatus(`eBay検索中: "${enKeyword}"`);
-
-      let sold = [], count = "0";
-
-      // Try Finding API first if App ID provided
-      if (ebayAppId) {
-        try {
-          const r = await fetchEbaySold(enKeyword, ebayAppId);
-          sold = r.items; count = r.count;
-        } catch {}
-      }
-
-      // Fallback: scrape eBay directly (no API key needed)
-      if (sold.length === 0) {
-        try {
-          const r = await fetchEbayScraped(enKeyword);
-          sold = r.items; count = r.count;
-        } catch {}
-      }
-
-      if (sold.length > 0) {
-        ebayContext = "\n\n【eBay参考価格（直近）】\n" + sold.map(
-          (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "Listed"}）`
-        ).join("\n");
-        setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
-      } else {
-        setEbayStatus(`eBay: "${enKeyword}" — データなし（AI分析のみで算出）`);
-      }
-    } catch {
-      setEbayStatus("");
-    }
+    const ebayContext = ebayPrices.trim()
+      ? `\n\n【eBay参考価格】\n${ebayPrices.trim()}`
+      : "";
 
     try {
       const userMessage = `商品情報: ${input}${ebayContext}`;
@@ -559,12 +389,20 @@ export default function App() {
           </div>
         </div>
 
-        {/* eBay status */}
-        {ebayStatus && (
-          <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginBottom: "16px", letterSpacing: "0.5px" }}>
-            {ebayStatus}
+        {/* eBay manual price input */}
+        <div style={styles.section}>
+          <label style={styles.label}>EBAY 参考価格（任意）</label>
+          <input
+            type="text"
+            value={ebayPrices}
+            onChange={(e) => setEbayPrices(e.target.value)}
+            placeholder="例: $25, $30, $18  ← eBayで検索して見つけた価格を入力"
+            style={styles.input}
+          />
+          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px" }}>
+            eBayで類似商品を検索 → 落札価格をコピーして貼るだけ
           </div>
-        )}
+        </div>
 
         {/* Input */}
         <div style={styles.section}>
