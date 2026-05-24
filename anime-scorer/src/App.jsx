@@ -300,7 +300,26 @@ async function fetchViaProxy(targetUrl) {
   throw lastErr || new Error("全プロキシ接続失敗");
 }
 
+function getEbayCache(keyword) {
+  try {
+    const raw = sessionStorage.getItem("ebay:" + keyword.toLowerCase());
+    if (!raw) return null;
+    const { data, ts } = JSON.parse(raw);
+    if (Date.now() - ts < 3600000) return data;
+  } catch {}
+  return null;
+}
+
+function setEbayCache(keyword, data) {
+  try {
+    sessionStorage.setItem("ebay:" + keyword.toLowerCase(), JSON.stringify({ data, ts: Date.now() }));
+  } catch {}
+}
+
 async function fetchEbaySold(keywords, appId) {
+  const cached = getEbayCache(keywords);
+  if (cached) return cached;
+
   const params = new URLSearchParams({
     "OPERATION-NAME": "findCompletedItems",
     "SERVICE-VERSION": "1.0.0",
@@ -325,15 +344,20 @@ async function fetchEbaySold(keywords, appId) {
     const ebayMsg = data.errorMessage?.[0]?.error?.[0]?.message?.[0]
       || data.findCompletedItemsResponse?.[0]?.errorMessage?.[0]?.error?.[0]?.message?.[0]
       || JSON.stringify(data).slice(0, 120);
+    if (ebayMsg && ebayMsg.toLowerCase().includes("exceeded")) {
+      throw new Error("本日のeBay API上限に達しました。明日また試してください。");
+    }
     throw new Error(`eBay: ${ebayMsg}`);
   }
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
-  return { count, items: items.map(item => ({
+  const result = { count, items: items.map(item => ({
     title: item.title?.[0],
     price: item.sellingStatus?.[0]?.currentPrice?.[0]?.["__value__"],
     currency: item.sellingStatus?.[0]?.currentPrice?.[0]?.["@currencyId"],
     condition: item.condition?.[0]?.conditionDisplayName?.[0],
   }))};
+  setEbayCache(keywords, result);
+  return result;
 }
 
 export default function App() {
