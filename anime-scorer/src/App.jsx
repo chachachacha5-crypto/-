@@ -282,6 +282,24 @@ function Cell({ label, value, accent }) {
   );
 }
 
+async function fetchViaProxy(targetUrl) {
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`,
+    `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`,
+    `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(targetUrl)}`,
+  ];
+  let lastErr;
+  for (const proxyUrl of proxies) {
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(8000) });
+      if (res.ok) return res;
+    } catch (e) {
+      lastErr = e;
+    }
+  }
+  throw lastErr || new Error("全プロキシ接続失敗");
+}
+
 async function fetchEbaySold(keywords, appId) {
   const params = new URLSearchParams({
     "OPERATION-NAME": "findCompletedItems",
@@ -293,7 +311,7 @@ async function fetchEbaySold(keywords, appId) {
     "sortOrder": "EndTimeSoonest",
   });
   const ebayUrl = `https://svcs.ebay.com/services/search/FindingService/v1?${params}`;
-  const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(ebayUrl)}`);
+  const res = await fetchViaProxy(ebayUrl);
   const rawText = await res.text();
   let data;
   try {
