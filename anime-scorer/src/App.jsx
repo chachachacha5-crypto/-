@@ -333,22 +333,10 @@ async function fetchEbaySold(keywords, appId) {
   const res = await fetchViaProxy(ebayUrl);
   const rawText = await res.text();
   let data;
-  try {
-    data = JSON.parse(rawText);
-  } catch {
-    throw new Error(`レスポンス解析失敗: ${rawText.slice(0, 80)}`);
-  }
+  try { data = JSON.parse(rawText); } catch { throw new Error("parse error"); }
   const ack = data.findCompletedItemsResponse?.[0]?.ack?.[0];
+  if (ack !== "Success") throw new Error("api error");
   const count = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.["@count"];
-  if (ack !== "Success") {
-    const ebayMsg = data.errorMessage?.[0]?.error?.[0]?.message?.[0]
-      || data.findCompletedItemsResponse?.[0]?.errorMessage?.[0]?.error?.[0]?.message?.[0]
-      || JSON.stringify(data).slice(0, 120);
-    if (ebayMsg && ebayMsg.toLowerCase().includes("exceeded")) {
-      throw new Error("本日のeBay API上限に達しました。明日また試してください。");
-    }
-    throw new Error(`eBay: ${ebayMsg}`);
-  }
   const items = data.findCompletedItemsResponse?.[0]?.searchResult?.[0]?.item || [];
   const result = { count, items: items.map(item => ({
     title: item.title?.[0],
@@ -360,9 +348,51 @@ async function fetchEbaySold(keywords, appId) {
   return result;
 }
 
+async function fetchEbayScraped(keywords) {
+  const cached = getEbayCache("scrape:" + keywords);
+  if (cached) return cached;
+
+  const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&LH_Sold=1&LH_Complete=1&_sacat=0`;
+  const res = await fetchViaProxy(url);
+  const html = await res.text();
+
+  const items = [];
+
+  // Try JSON-LD structured data first
+  for (const m of html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]+?)<\/script>/g)) {
+    try {
+      const obj = JSON.parse(m[1]);
+      const list = obj["@type"] === "ItemList" ? obj.itemListElement : null;
+      if (list) {
+        for (const el of list) {
+          const offer = el.item?.offers;
+          if (offer?.price) {
+            items.push({ title: el.item.name || keywords, price: String(offer.price), currency: offer.priceCurrency || "USD", condition: "Sold" });
+          }
+          if (items.length >= 8) break;
+        }
+      }
+    } catch {}
+    if (items.length > 0) break;
+  }
+
+  // Fallback: find prices near s-item__price class
+  if (items.length === 0) {
+    for (const m of html.matchAll(/s-item__price[^$]{0,60}\$([\d,]+\.?\d{0,2})/g)) {
+      const val = parseFloat(m[1].replace(/,/g, ""));
+      if (val >= 1 && val < 100000) items.push({ price: val.toFixed(2), currency: "USD", title: keywords, condition: "Sold" });
+      if (items.length >= 8) break;
+    }
+  }
+
+  const result = { count: String(items.length), items };
+  if (items.length > 0) setEbayCache("scrape:" + keywords, result);
+  return result;
+}
+
 export default function App() {
   const [apiKey, setApiKey] = useState("");
-  const [ebayAppId, setEbayAppId] = useState("");
+  const [ebayAppId, setEbayAppId] = useState("");  // kept for optional API boost
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
@@ -402,28 +432,44 @@ export default function App() {
     setEbayStatus("");
 
     let ebayContext = "";
-    if (ebayAppId) {
+    try {
+      setEbayStatus("キーワードを英語に変換中...");
+      let enKeyword;
       try {
-        setEbayStatus("キーワードを英語に変換中...");
-        let enKeyword;
-        try {
-          enKeyword = await translateToEbayKeywords(input);
-        } catch {
-          enKeyword = input.replace(/[^\x20-\x7E]/g, "").trim() || "anime goods";
-        }
-        setEbayStatus(`eBay検索中: "${enKeyword}"`);
-        const { items: sold, count } = await fetchEbaySold(enKeyword, ebayAppId);
-        if (sold.length > 0) {
-          ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
-            (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "状態不明"}）`
-          ).join("\n");
-          setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
-        } else {
-          setEbayStatus(`eBay: データなし（count:${count}, keyword:"${enKeyword}"）`);
-        }
-      } catch (e) {
-        setEbayStatus(`eBay取得失敗: ${e.message}`);
+        enKeyword = await translateToEbayKeywords(input);
+      } catch {
+        enKeyword = input.replace(/[^\x20-\x7E]/g, "").trim() || "anime goods";
       }
+      setEbayStatus(`eBay検索中: "${enKeyword}"`);
+
+      let sold = [], count = "0";
+
+      // Try Finding API first if App ID provided
+      if (ebayAppId) {
+        try {
+          const r = await fetchEbaySold(enKeyword, ebayAppId);
+          sold = r.items; count = r.count;
+        } catch {}
+      }
+
+      // Fallback: scrape eBay directly (no API key needed)
+      if (sold.length === 0) {
+        try {
+          const r = await fetchEbayScraped(enKeyword);
+          sold = r.items; count = r.count;
+        } catch {}
+      }
+
+      if (sold.length > 0) {
+        ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
+          (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "Sold"}）`
+        ).join("\n");
+        setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
+      } else {
+        setEbayStatus("eBay: 類似データなし（AI分析のみで算出）");
+      }
+    } catch {
+      setEbayStatus("");
     }
 
     try {
@@ -509,25 +555,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* eBay App ID */}
-        <div style={styles.section}>
-          <label style={styles.label}>EBAY APP ID（任意・落札実績を取得）</label>
-          <input
-            type="password"
-            value={ebayAppId}
-            onChange={(e) => setEbayAppId(e.target.value)}
-            placeholder="xxxx-xxxx-xxxx-xxxx"
-            style={styles.input}
-          />
-          <div style={{ fontSize: "11px", color: "rgba(255,255,255,0.3)", marginTop: "6px" }}>
-            商品情報を自動で英語に変換してeBayを検索します
+        {/* eBay status */}
+        {ebayStatus && (
+          <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginBottom: "16px", letterSpacing: "0.5px" }}>
+            {ebayStatus}
           </div>
-          {ebayStatus && (
-            <div style={{ fontSize: "11px", color: "rgba(255,204,0,0.7)", marginTop: "6px" }}>
-              {ebayStatus}
-            </div>
-          )}
-        </div>
+        )}
 
         {/* Input */}
         <div style={styles.section}>
