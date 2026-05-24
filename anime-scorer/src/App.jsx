@@ -349,45 +349,49 @@ async function fetchEbaySold(keywords, appId) {
 }
 
 async function fetchEbayScraped(keywords) {
-  const cached = getEbayCache("scrape:" + keywords);
+  const cached = getEbayCache("rss:" + keywords);
   if (cached) return cached;
 
-  const url = `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&LH_Sold=1&LH_Complete=1&_sacat=0`;
-  const res = await fetchViaProxy(url);
-  const html = await res.text();
+  // Use eBay RSS feed (designed for bots, no API key needed)
+  // Try sold items first, then active listings
+  const urls = [
+    `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&LH_Sold=1&LH_Complete=1&_rss=1`,
+    `https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(keywords)}&_rss=1`,
+  ];
 
-  const items = [];
-
-  // Try JSON-LD structured data first
-  for (const m of html.matchAll(/<script[^>]+type="application\/ld\+json"[^>]*>([\s\S]+?)<\/script>/g)) {
+  for (const url of urls) {
     try {
-      const obj = JSON.parse(m[1]);
-      const list = obj["@type"] === "ItemList" ? obj.itemListElement : null;
-      if (list) {
-        for (const el of list) {
-          const offer = el.item?.offers;
-          if (offer?.price) {
-            items.push({ title: el.item.name || keywords, price: String(offer.price), currency: offer.priceCurrency || "USD", condition: "Sold" });
-          }
-          if (items.length >= 8) break;
+      const res = await fetchViaProxy(url);
+      const xml = await res.text();
+      if (!xml.includes("<item>") && !xml.includes("<item ")) continue;
+
+      const items = [];
+      for (const m of xml.matchAll(/<item>([\s\S]+?)<\/item>/g)) {
+        const chunk = m[1];
+        const titleM = chunk.match(/<title[^>]*><!\[CDATA\[([\s\S]+?)\]\]><\/title>/)
+                    || chunk.match(/<title[^>]*>([\s\S]+?)<\/title>/);
+        const title = titleM?.[1]?.trim();
+
+        // Price from ebay namespace element or title text
+        const priceM = chunk.match(/<[^>]*:price[^>]*>\s*([\d.]+)\s*<\//)
+                    || chunk.match(/\$([\d,]+\.?\d{0,2})/);
+        const price = priceM ? parseFloat(priceM[1].replace(/,/g, "")) : null;
+
+        if (title && price && price > 0) {
+          items.push({ title: title.slice(0, 80), price: price.toFixed(2), currency: "USD", condition: url.includes("LH_Sold") ? "Sold" : "Listed" });
         }
+        if (items.length >= 8) break;
+      }
+
+      if (items.length > 0) {
+        const result = { count: String(items.length), items };
+        setEbayCache("rss:" + keywords, result);
+        return result;
       }
     } catch {}
-    if (items.length > 0) break;
   }
 
-  // Fallback: find prices near s-item__price class
-  if (items.length === 0) {
-    for (const m of html.matchAll(/s-item__price[^$]{0,60}\$([\d,]+\.?\d{0,2})/g)) {
-      const val = parseFloat(m[1].replace(/,/g, ""));
-      if (val >= 1 && val < 100000) items.push({ price: val.toFixed(2), currency: "USD", title: keywords, condition: "Sold" });
-      if (items.length >= 8) break;
-    }
-  }
-
-  const result = { count: String(items.length), items };
-  if (items.length > 0) setEbayCache("scrape:" + keywords, result);
-  return result;
+  return { count: "0", items: [] };
 }
 
 export default function App() {
@@ -461,12 +465,12 @@ export default function App() {
       }
 
       if (sold.length > 0) {
-        ebayContext = "\n\n【eBay落札実績（直近）】\n" + sold.map(
-          (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "Sold"}）`
+        ebayContext = "\n\n【eBay参考価格（直近）】\n" + sold.map(
+          (s, i) => `${i + 1}. ${s.title} — ${s.currency} ${s.price}（${s.condition || "Listed"}）`
         ).join("\n");
         setEbayStatus(`eBayデータ取得完了（${sold.length}件）`);
       } else {
-        setEbayStatus("eBay: 類似データなし（AI分析のみで算出）");
+        setEbayStatus(`eBay: "${enKeyword}" — データなし（AI分析のみで算出）`);
       }
     } catch {
       setEbayStatus("");
