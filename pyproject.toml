@@ -1,0 +1,16 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pokesurge"
+version = "0.1.0"
+description = "Detect surging Pokemon cards from overseas markets"
+requires-python = ">=3.10"
+dependencies = ["requests>=2.31"]
+
+[project.scripts]
+pokesurge = "pokesurge.cli:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["pokesurge"]
