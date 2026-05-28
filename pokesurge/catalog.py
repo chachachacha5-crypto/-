@@ -39,11 +39,13 @@ def sync(db_path: str, years_back: int = 5, verbose: bool = True) -> None:
             cards = api.get_cards_in_set(s["id"])
             for c in cards:
                 images = c.get("images") or {}
+                pokedex = ",".join(str(n) for n in (c.get("nationalPokedexNumbers") or []))
                 conn.execute(
                     """INSERT OR REPLACE INTO cards
                        (id, set_id, name, number, rarity, supertype, subtypes,
-                        image_small, image_large, tcgplayer_url, cardmarket_url, synced_at)
-                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                        image_small, image_large, tcgplayer_url, cardmarket_url,
+                        synced_at, pokedex_numbers)
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                     (
                         c["id"], s["id"], c.get("name"), c.get("number"),
                         c.get("rarity"), c.get("supertype"),
@@ -51,7 +53,7 @@ def sync(db_path: str, years_back: int = 5, verbose: bool = True) -> None:
                         images.get("small"), images.get("large"),
                         (c.get("tcgplayer") or {}).get("url"),
                         (c.get("cardmarket") or {}).get("url"),
-                        now_iso,
+                        now_iso, pokedex,
                     ),
                 )
             conn.commit()

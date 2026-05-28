@@ -55,12 +55,69 @@ CREATE TABLE IF NOT EXISTS price_snapshots (
 CREATE INDEX IF NOT EXISTS idx_snap_card    ON price_snapshots(card_id, snapshot_at);
 CREATE INDEX IF NOT EXISTS idx_snap_recent  ON price_snapshots(snapshot_at);
 CREATE INDEX IF NOT EXISTS idx_snap_lookup  ON price_snapshots(source, metric, card_id, snapshot_at);
+
+-- Pokedex name dictionary (from PokeAPI). Bridges English and Japanese cards
+-- via the National Pokedex number, since card names differ across locales.
+CREATE TABLE IF NOT EXISTS pokemon_names (
+    pokedex_number  INTEGER PRIMARY KEY,
+    name_en         TEXT,
+    name_ja         TEXT,         -- katakana form (ja-Hrkt)
+    name_roomaji    TEXT,
+    synced_at       TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_dex_name_ja ON pokemon_names(name_ja);
+CREATE INDEX IF NOT EXISTS idx_dex_name_en ON pokemon_names(name_en);
+
+-- Japanese set catalog (from TCGdex /ja/).
+CREATE TABLE IF NOT EXISTS jp_sets (
+    id              TEXT PRIMARY KEY,
+    name            TEXT,
+    series          TEXT,
+    release_date    TEXT,
+    card_count      INTEGER,
+    synced_at       TEXT
+);
+
+CREATE TABLE IF NOT EXISTS jp_cards (
+    id              TEXT PRIMARY KEY,
+    set_id          TEXT NOT NULL,
+    name            TEXT,
+    local_id        TEXT,
+    rarity          TEXT,
+    category        TEXT,         -- 'Pokemon' | 'Trainer' | 'Energy' (best effort)
+    pokedex_numbers TEXT,         -- comma-separated; filled by linker via dex
+    image_url       TEXT,
+    synced_at       TEXT,
+    FOREIGN KEY (set_id) REFERENCES jp_sets(id)
+);
+CREATE INDEX IF NOT EXISTS idx_jp_cards_set     ON jp_cards(set_id);
+CREATE INDEX IF NOT EXISTS idx_jp_cards_name    ON jp_cards(name);
+CREATE INDEX IF NOT EXISTS idx_jp_cards_pokedex ON jp_cards(pokedex_numbers);
+
+-- One row per (English card, Japanese card) candidate, with a confidence
+-- score and a human-readable reason string.
+CREATE TABLE IF NOT EXISTS card_links (
+    en_card_id  TEXT NOT NULL,
+    jp_card_id  TEXT NOT NULL,
+    score       REAL NOT NULL,
+    reason      TEXT,
+    linked_at   TEXT,
+    PRIMARY KEY (en_card_id, jp_card_id),
+    FOREIGN KEY (en_card_id) REFERENCES cards(id),
+    FOREIGN KEY (jp_card_id) REFERENCES jp_cards(id)
+);
+CREATE INDEX IF NOT EXISTS idx_links_en ON card_links(en_card_id, score DESC);
+CREATE INDEX IF NOT EXISTS idx_links_jp ON card_links(jp_card_id);
 """
 
 
 def init_db(path: str = DEFAULT_DB) -> None:
     with sqlite3.connect(path) as conn:
         conn.executescript(SCHEMA)
+        # Additive migration: pokedex_numbers was added to `cards` in v0.2.
+        existing = {row[1] for row in conn.execute("PRAGMA table_info(cards)")}
+        if "pokedex_numbers" not in existing:
+            conn.execute("ALTER TABLE cards ADD COLUMN pokedex_numbers TEXT")
 
 
 @contextmanager

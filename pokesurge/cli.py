@@ -5,7 +5,7 @@ import argparse
 import json
 import sys
 
-from . import catalog, prices, surge
+from . import catalog, dex, jp_catalog, linker, prices, surge
 from .db import DEFAULT_DB, init_db
 
 
@@ -38,6 +38,31 @@ def main(argv: list[str] | None = None) -> int:
     p_surge.add_argument("--min-price", type=float, default=1.0,
                          help="Minimum baseline price to filter out near-zero noise (default 1.0)")
     p_surge.add_argument("--json", action="store_true", help="Emit raw JSON")
+
+    p_dex = sub.add_parser("dex-sync",
+                           help="Build the Pokedex name dictionary from PokeAPI (one-time)")
+    p_dex.add_argument("--max-id", type=int, default=1025,
+                       help="Highest national Pokedex number to fetch (default: 1025)")
+    p_dex.add_argument("--delay", type=float, default=0.1,
+                       help="Seconds between requests (default: 0.1)")
+
+    p_jp = sub.add_parser("jp-catalog",
+                          help="Sync Japanese set & card catalog from TCGdex")
+    p_jp.add_argument("--years", type=int, default=5)
+    p_jp.add_argument("--deep", action="store_true",
+                      help="Also fetch per-card detail (rarity, dexId). Slow.")
+
+    p_link = sub.add_parser("link", help="Match English cards to Japanese candidates")
+    p_link.add_argument("--enrich", action="store_true",
+                        help="Also (re)populate jp_cards.pokedex_numbers via name match")
+    p_link.add_argument("--days-window", type=int, default=180,
+                        help="Max release-date distance to consider (default: 180)")
+    p_link.add_argument("--top", type=int, default=5,
+                        help="Candidates kept per English card (default: 5)")
+
+    p_show = sub.add_parser("linked", help="Show Japanese candidates for one English card")
+    p_show.add_argument("en_card_id", help="e.g. sv2-50")
+    p_show.add_argument("--json", action="store_true")
 
     args = parser.parse_args(argv)
 
@@ -76,6 +101,31 @@ def main(argv: list[str] | None = None) -> int:
             _print_table(rows, args.source)
         return 0
 
+    if args.cmd == "dex-sync":
+        init_db(args.db)
+        dex.sync(args.db, max_id=args.max_id, delay=args.delay)
+        return 0
+
+    if args.cmd == "jp-catalog":
+        init_db(args.db)
+        jp_catalog.sync(args.db, years_back=args.years, deep=args.deep)
+        return 0
+
+    if args.cmd == "link":
+        init_db(args.db)
+        if args.enrich:
+            linker.enrich_jp_pokedex(args.db)
+        linker.link_all(args.db, days_window=args.days_window, top_per_card=args.top)
+        return 0
+
+    if args.cmd == "linked":
+        rows = linker.show_links_for(args.db, args.en_card_id)
+        if args.json:
+            print(json.dumps(rows, indent=2, default=str))
+        else:
+            _print_links(args.en_card_id, rows)
+        return 0
+
     return 1
 
 
@@ -99,6 +149,21 @@ def _print_table(rows: list[dict], source: str) -> None:
                 f"{r['n_points']:>3} {r['variant']:<18}  "
                 f"{r['name']} #{r['number']} [{r['set_name']}]"
             )
+
+
+def _print_links(en_card_id: str, rows: list[dict]) -> None:
+    if not rows:
+        print(f"No links for {en_card_id}. "
+              f"Run `pokesurge dex-sync`, `jp-catalog`, then `link --enrich`.")
+        return
+    print(f"Candidates for {en_card_id}:")
+    print(f"{'Score':>6}  {'JP Set':<14} {'Release':<11} {'#':<6} {'Rarity':<6}  Name  [reason]")
+    for r in rows:
+        print(
+            f"{r['score']:>6.1f}  {r['jp_set_id']:<14} {r['jp_release'] or '?':<11} "
+            f"{r['local_id'] or '?':<6} {(r['jp_rarity'] or '?'):<6}  "
+            f"{r['jp_name']}  [{r['reason']}]"
+        )
 
 
 if __name__ == "__main__":
