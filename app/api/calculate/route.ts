@@ -14,6 +14,8 @@ export async function POST(req: Request) {
       heightCm: Number(body.heightCm ?? 10),
       jpyToUsd: Number(body.jpyToUsd ?? 155),
       includeShippingInDutyBase: body.includeShippingInDutyBase ?? true,
+      section232: body.section232 ?? false,
+      shippingMode: (body.shippingMode ?? "DIRECT") as CalcInput["shippingMode"],
     };
     const result = calculate(input);
     return NextResponse.json(result);

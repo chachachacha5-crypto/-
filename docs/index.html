@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0f17" />
-  <title>eBay US 関税・送料 概算 (日本→米国)</title>
+  <title>eBay US 関税・送料 概算 (日本→米国 / 2026年版)</title>
   <style>
     :root {
       --bg: #0b0f17;
@@ -17,6 +17,7 @@
       --accent2: #93c5fd;
       --warn: #fbbf24;
       --bad: #f87171;
+      --good: #34d399;
     }
     * { box-sizing: border-box; }
     html, body {
@@ -63,7 +64,7 @@
     select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'><path fill='%2394a3b8' d='M6 8L0 0h12z'/></svg>"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
     input:focus, select:focus { outline: none; border-color: var(--accent); }
     .suffix { font-size: 11px; color: var(--muted); white-space: nowrap; }
-    .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); }
+    .check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); margin-top: 8px; }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     table th, table td { padding: 6px 4px; text-align: left; }
     table td.num { text-align: right; font-variant-numeric: tabular-nums; }
@@ -72,27 +73,30 @@
     table tbody tr:last-child { border-bottom: 0; }
     .row-bold td { font-weight: 600; color: var(--text); }
     .row-accent td { color: var(--accent2); font-weight: 600; }
+    .row-zero td { color: #475569; }
     .ship-row .ship-label { color: var(--text); font-size: 14px; }
     .ship-row .ship-desc { color: var(--muted); font-size: 11px; margin-top: 2px; }
     .ship-row .ship-warn { color: var(--warn); font-size: 11px; margin-top: 4px; }
     .ship-row .sub { color: #64748b; font-size: 11px; }
-    .recommended {
-      border-color: rgba(96,165,250,0.5);
-      background: rgba(96,165,250,0.08);
+    .recommended { border-color: rgba(96,165,250,0.5); background: rgba(96,165,250,0.08); }
+    .recommended .big { font-size: 26px; font-weight: 700; margin-top: 6px; }
+    .alert { border-color: rgba(251,191,36,0.45); background: rgba(251,191,36,0.08); color: #fde68a; font-size: 13px; }
+    .info-banner {
+      background: rgba(52,211,153,0.08);
+      border: 1px solid rgba(52,211,153,0.4);
+      color: #a7f3d0;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 12px;
+      margin-bottom: 12px;
+      line-height: 1.5;
     }
-    .recommended .big {
-      font-size: 26px; font-weight: 700; margin-top: 6px;
-    }
-    .alert {
-      border-color: rgba(251,191,36,0.45);
-      background: rgba(251,191,36,0.08);
-      color: #fde68a;
-      font-size: 13px;
-    }
+    .info-banner b { color: #6ee7b7; }
     .notes { font-size: 11px; color: var(--muted); line-height: 1.55; padding-left: 18px; margin: 0; }
     .notes li { margin-bottom: 4px; }
     footer { color: #64748b; font-size: 11px; margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--border); }
     .pill { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 11px; background: #1f2937; color: var(--muted); margin-right: 6px; }
+    .pill.warn { background: rgba(251,191,36,0.15); color: #fde68a; }
   </style>
 </head>
 <body>
@@ -100,9 +104,17 @@
     <header>
       <h1>eBay US 関税・送料 概算ツール</h1>
       <p class="lead">
-        日本→米国向け販売で、<b>生産国 × カテゴリ × サイズ/重量</b> から関税(2025年相互関税対応)と送料(EMS/eパケット/船便)を概算します。
-        計算はブラウザ内で完結します。
+        日本→米国向け販売の関税と送料を概算。<b>2026年2月20日の最高裁判決</b>で
+        IEEPA に基づく国別「相互関税」は撤廃され、現在は <b>Section 122 一律10%</b>
+        + MFN + (中国製のみ Section 301) + (鉄鋼・アルミ・自動車製品のみ Section 232) の構造です。
       </p>
+
+      <div class="info-banner">
+        <b>📌 2026年5月時点の関税構造:</b><br>
+        ① MFN通常関税 (カテゴリ別) ＋ ② <b>Section 122 +10%</b> (全世界一律, 暫定・2026年7月頃失効予定)<br>
+        ③ 中国製のみ <b>Section 301</b> 追加 ＋ ④ 鉄鋼/アルミ/自動車製品のみ <b>Section 232 +25%</b><br>
+        ⑤ De minimis ($800免税枠) は 2025/8/29 廃止以降、停止継続中
+      </div>
     </header>
 
     <div class="grid grid-2">
@@ -111,12 +123,19 @@
         <h2>入力</h2>
         <div class="row full">
           <label class="field">
-            <span>生産国 (原産国)</span>
+            <span>生産国 (原産国 / eBay出品時に必須)</span>
             <select id="country"></select>
           </label>
           <label class="field">
             <span>商品カテゴリ</span>
             <select id="category"></select>
+          </label>
+          <label class="field">
+            <span>発送方法</span>
+            <select id="shipMode">
+              <option value="DIRECT">直接発送 (EMS / DHL / FedEx)</option>
+              <option value="EIS">eBay International Shipping (eIS / GSP)</option>
+            </select>
           </label>
         </div>
         <div class="row" style="margin-top:10px">
@@ -146,9 +165,13 @@
             <div class="field-inner"><input id="lenH" type="number" step="1" min="0" value="10" /><span class="suffix">cm</span></div>
           </label>
         </div>
-        <label class="check" style="margin-top:14px">
+        <label class="check">
           <input id="includeShip" type="checkbox" checked />
           <span>関税の課税ベースに送料を含める (航空便CIFが原則)</span>
+        </label>
+        <label class="check">
+          <input id="section232" type="checkbox" />
+          <span>鉄鋼・アルミ・自動車部品である (Section 232 +25%)</span>
         </label>
       </section>
 
@@ -157,53 +180,61 @@
     </div>
 
     <footer>
-      税率データは 2025 年後半時点の代表値です。実務では USTR / CBP の最新告示と日本郵便公式の料金表をご確認ください。
+      税率・送料は 2026年5月時点の代表値です。Section 122 は 150日上限のため 2026年7月頃に失効予定 (継続には議会立法が必要)。
+      実務では CBP / USTR の最新告示と日本郵便公式の料金表を必ずご確認ください。
     </footer>
   </main>
 
   <script>
   // ============================================================
-  // データテーブル (2025-2026 代表値)
+  // データテーブル (2026年5月時点)
   // ============================================================
+
+  // 原産国 — eBay出品時の必須情報。関税計算上は「中国製か否か」だけが効く (Section 301)
   const COUNTRIES = [
-    { code:"JP", name:"日本",            r:15, note:"2025年7月の日米合意以降の代表値" },
-    { code:"CN", name:"中国",            r:30, note:"2025年5月以降の引下げ後 (品目により更に高い場合あり)" },
-    { code:"KR", name:"韓国",            r:15 },
-    { code:"TW", name:"台湾",            r:20 },
-    { code:"VN", name:"ベトナム",        r:20 },
-    { code:"TH", name:"タイ",            r:19 },
-    { code:"ID", name:"インドネシア",    r:19 },
-    { code:"PH", name:"フィリピン",      r:19 },
-    { code:"MY", name:"マレーシア",      r:19 },
-    { code:"IN", name:"インド",          r:25 },
-    { code:"BD", name:"バングラデシュ",  r:20 },
-    { code:"KH", name:"カンボジア",      r:19 },
-    { code:"MX", name:"メキシコ",        r:25, note:"USMCA適合品は通常無税" },
-    { code:"CA", name:"カナダ",          r:35, note:"USMCA適合品は通常無税" },
-    { code:"EU", name:"EU加盟国",        r:15 },
-    { code:"GB", name:"イギリス",        r:10 },
-    { code:"BR", name:"ブラジル",        r:50 },
-    { code:"OTHER", name:"その他 (10%ベース)", r:10 },
+    { code:"JP", name:"日本" },
+    { code:"CN", name:"中国" },
+    { code:"KR", name:"韓国" },
+    { code:"TW", name:"台湾" },
+    { code:"VN", name:"ベトナム" },
+    { code:"TH", name:"タイ" },
+    { code:"ID", name:"インドネシア" },
+    { code:"PH", name:"フィリピン" },
+    { code:"MY", name:"マレーシア" },
+    { code:"IN", name:"インド" },
+    { code:"BD", name:"バングラデシュ" },
+    { code:"KH", name:"カンボジア" },
+    { code:"MX", name:"メキシコ" },
+    { code:"CA", name:"カナダ" },
+    { code:"EU", name:"EU加盟国" },
+    { code:"GB", name:"イギリス" },
+    { code:"BR", name:"ブラジル" },
+    { code:"OTHER", name:"その他" },
   ];
 
+  // mfn = MFN通常関税 [%], s301 = 中国製の場合のSection 301代表値 [%]
   const CATEGORIES = [
-    { code:"apparel",            name:"衣料品 (服全般)",            mfn:15.0 },
-    { code:"footwear",           name:"靴・スニーカー",             mfn:12.0 },
-    { code:"bags_leather",       name:"バッグ (革製)",              mfn:8.0  },
-    { code:"bags_textile",       name:"バッグ (布・合皮)",          mfn:17.6 },
-    { code:"watches",            name:"時計",                       mfn:4.0  },
-    { code:"jewelry",            name:"ジュエリー・アクセサリー",   mfn:6.5  },
-    { code:"electronics",        name:"電子機器 (PC周辺・スマホ等)", mfn:0.0 },
-    { code:"cameras",            name:"カメラ・レンズ",             mfn:2.1  },
-    { code:"toys_games",         name:"おもちゃ・ゲーム",           mfn:0.0  },
-    { code:"hobby_collectibles", name:"ホビー・フィギュア・コレクター品", mfn:0.0 },
-    { code:"books_paper",        name:"書籍・紙製品",               mfn:0.0  },
-    { code:"kitchenware",        name:"食器・キッチン用品",         mfn:7.0  },
-    { code:"cosmetics",          name:"化粧品",                     mfn:0.0  },
-    { code:"sporting_goods",     name:"スポーツ用品",               mfn:4.0  },
-    { code:"musical_instruments",name:"楽器",                       mfn:4.5  },
-    { code:"general",            name:"その他 / 一般雑貨",          mfn:5.0  },
+    { code:"apparel",            name:"衣料品 (服全般)",                mfn:15.0, s301:7.5 },
+    { code:"footwear",           name:"靴・スニーカー",                 mfn:12.0, s301:15.0 },
+    { code:"bags_leather",       name:"バッグ (革製)",                  mfn:8.0,  s301:7.5 },
+    { code:"bags_textile",       name:"バッグ (布・合皮)",              mfn:17.6, s301:7.5 },
+    { code:"watches",            name:"時計",                           mfn:4.0,  s301:25.0 },
+    { code:"jewelry",            name:"ジュエリー・アクセサリー",       mfn:6.5,  s301:7.5 },
+    { code:"electronics",        name:"電子機器 (PC周辺・スマホ等)",    mfn:0.0,  s301:25.0 },
+    { code:"cameras",            name:"カメラ・レンズ",                 mfn:2.1,  s301:25.0 },
+    { code:"toys_games",         name:"おもちゃ・ゲーム",               mfn:0.0,  s301:7.5 },
+    { code:"hobby_collectibles", name:"ホビー・フィギュア・コレクター品", mfn:0.0,  s301:7.5 },
+    { code:"books_paper",        name:"書籍・紙製品",                   mfn:0.0,  s301:0.0 },
+    { code:"kitchenware",        name:"食器・キッチン用品",             mfn:7.0,  s301:25.0 },
+    { code:"cosmetics",          name:"化粧品",                         mfn:0.0,  s301:7.5 },
+    { code:"sporting_goods",     name:"スポーツ用品",                   mfn:4.0,  s301:25.0 },
+    { code:"musical_instruments",name:"楽器",                           mfn:4.5,  s301:7.5 },
+    { code:"general",            name:"その他 / 一般雑貨",              mfn:5.0,  s301:15.0 },
   ];
+
+  // 現行関税レート (2026年5月時点)
+  const SECTION_122_RATE = 10.0;   // 全世界一律 (2026/2/24発効、150日上限のため7月頃失効予定)
+  const SECTION_232_RATE = 25.0;   // 鉄鋼/アルミ/自動車・関連部品
 
   // 日本郵便 米国向け料金 (2025年改定後の代表値)
   const EMS = [
@@ -223,12 +254,12 @@
   ];
 
   const SHIPPING = [
-    { service:"EMS",     label:"EMS (国際スピード郵便)", desc:"追跡・補償あり / 3-7日 / eBayの標準",       table:EMS,     maxKg:30, useVol:true,  divisor:6000 },
+    { service:"EMS",     label:"EMS (国際スピード郵便)", desc:"追跡・補償あり / 3-7日 / eBay標準",          table:EMS,     maxKg:30, useVol:true,  divisor:6000 },
     { service:"EPACKET", label:"国際eパケット",          desc:"追跡あり / 7-14日 / 2kgまでの軽量品向け",    table:EPACKET, maxKg:2,  useVol:false, divisor:6000 },
     { service:"SURFACE", label:"船便小包",               desc:"追跡なし(オプション可) / 1-3ヶ月 / 重量物向け", table:SURFACE, maxKg:30, useVol:false, divisor:6000 },
   ];
 
-  // MPF (Merchandise Processing Fee) 2025年率
+  // MPF (Merchandise Processing Fee) 2026年率
   const MPF_RATE = 0.003464;
   const MPF_MIN = 32.71;
   const MPF_MAX = 634.62;
@@ -243,9 +274,7 @@
     return null;
   }
 
-  function volWeight(L, W, H, divisor) {
-    return (L * W * H) / divisor;
-  }
+  function volWeight(L, W, H, divisor) { return (L * W * H) / divisor; }
 
   function calcShipping(opt, actual, L, W, H, fx) {
     const vol = volWeight(L, W, H, opt.divisor);
@@ -262,9 +291,7 @@
     }
     const fee = oversize ? null : lookupRate(chargeable, opt.table);
     return {
-      service: opt.service,
-      label: opt.label,
-      desc: opt.desc,
+      service: opt.service, label: opt.label, desc: opt.desc,
       actual, vol, chargeable,
       feeJpy: fee,
       feeUsd: fee != null ? fee / fx : null,
@@ -274,28 +301,42 @@
   }
 
   function calculate(input) {
-    const country = COUNTRIES.find(c => c.code === input.country);
+    const country  = COUNTRIES.find(c => c.code === input.country);
     const category = CATEGORIES.find(c => c.code === input.category);
 
     const shipping = SHIPPING.map(o => calcShipping(o, input.weight, input.L, input.W, input.H, input.fx));
-
     const ems = shipping.find(s => s.service === "EMS" && !s.oversize);
     const shipForDuty = (input.includeShip && ems && ems.feeUsd) ? ems.feeUsd : 0;
     const base = input.price + shipForDuty;
-    const mfn = base * (category.mfn / 100);
-    const recip = base * (country.r / 100);
-    const totalDuty = mfn + recip;
+
+    // 各関税レイヤー
+    const mfnRate  = category.mfn;
+    const s122Rate = SECTION_122_RATE;
+    const s301Rate = (country.code === "CN") ? category.s301 : 0;
+    const s232Rate = input.section232 ? SECTION_232_RATE : 0;
+
+    const mfn     = base * (mfnRate  / 100);
+    const sec122  = base * (s122Rate / 100);
+    const sec301  = base * (s301Rate / 100);
+    const sec232  = base * (s232Rate / 100);
+    const totalDuty = mfn + sec122 + sec301 + sec232;
+    const totalRate = mfnRate + s122Rate + s301Rate + s232Rate;
+
     let mpf = base * MPF_RATE;
     if (mpf < MPF_MIN) mpf = MPF_MIN;
     if (mpf > MPF_MAX) mpf = MPF_MAX;
 
-    const notes = [
-      "2025年8月29日でde minimis ($800免税枠) が全世界で廃止 → 全貨物が関税対象",
-      `相互関税は2025年中も変動しています (現在の代表値: ${country.name}=${country.r}%)`,
-    ];
-    if (country.code === "MX" || country.code === "CA") notes.push("USMCA原産品は通常無税。原産地証明があれば相互関税0%扱いになるケースあり");
-    if (category.code === "electronics" || category.code === "cameras") notes.push("MFN税率は無税/低率だが、相互関税は別途課税される");
-    if (ems && ems.oversize) notes.push("EMSが利用できないサイズ・重量です。FedEx/DHLでの送付を検討してください");
+    const notes = [];
+    notes.push("2026年2月20日 最高裁判決で IEEPA 関税 (国別相互関税) は違憲・撤廃。2026/2/24 失効");
+    notes.push("Section 122 (+10%) は 150日上限のため 2026年7月頃に失効予定。継続には議会立法が必要");
+    if (country.code === "CN") notes.push(`中国製品は Section 301 (+${category.s301}% / カテゴリ代表値) が継続中`);
+    if (input.section232) notes.push("Section 232 (+25%) は鉄鋼/アルミ/自動車・関連部品が対象");
+    notes.push("de minimis ($800免税枠) は 2025/8/29 以降、停止継続中 → 全貨物が関税対象");
+    if (input.shipMode === "EIS") {
+      notes.push("eIS / GSP 利用時: チェックアウト時にeBayが関税徴収・代行。原産国とHTSコードはeBayが処理");
+    } else {
+      notes.push("直接発送時: 原産国・HTSコード・正確な商品価値を申告書に明記。買い手がCBPに直接支払い");
+    }
 
     const recommended = (ems && ems.feeJpy != null) ? {
       label: ems.label,
@@ -307,14 +348,12 @@
     return {
       country, category, shipping,
       duty: {
-        price: input.price,
-        shipForDuty,
-        base,
-        mfnRate: category.mfn,
-        reciRate: country.r,
-        totalRate: category.mfn + country.r,
-        mfn, recip, totalDuty,
+        price: input.price, shipForDuty, base,
+        mfnRate, s122Rate, s301Rate, s232Rate, totalRate,
+        mfn, sec122, sec301, sec232, totalDuty,
         mpf, totalImport: totalDuty + mpf,
+        isChina: country.code === "CN",
+        section232: input.section232,
       },
       recommended, notes,
     };
@@ -328,7 +367,7 @@
 
   function populateSelects() {
     const cs = document.getElementById("country");
-    cs.innerHTML = COUNTRIES.map(c => `<option value="${c.code}">${c.name} (相互関税 +${c.r}%)</option>`).join("");
+    cs.innerHTML = COUNTRIES.map(c => `<option value="${c.code}">${c.name}${c.code==="CN"?" (Section 301 対象)":""}</option>`).join("");
     const ks = document.getElementById("category");
     ks.innerHTML = CATEGORIES.map(c => `<option value="${c.code}">${c.name} (MFN ${c.mfn}%)</option>`).join("");
     ks.value = "general";
@@ -336,15 +375,17 @@
 
   function getInput() {
     return {
-      country:   document.getElementById("country").value,
-      category:  document.getElementById("category").value,
-      price:     parseFloat(document.getElementById("price").value)  || 0,
-      fx:        parseFloat(document.getElementById("fx").value)     || 155,
-      weight:    parseFloat(document.getElementById("weight").value) || 0,
-      L:         parseFloat(document.getElementById("lenL").value)   || 0,
-      W:         parseFloat(document.getElementById("lenW").value)   || 0,
-      H:         parseFloat(document.getElementById("lenH").value)   || 0,
+      country:    document.getElementById("country").value,
+      category:   document.getElementById("category").value,
+      shipMode:   document.getElementById("shipMode").value,
+      price:      parseFloat(document.getElementById("price").value)  || 0,
+      fx:         parseFloat(document.getElementById("fx").value)     || 155,
+      weight:     parseFloat(document.getElementById("weight").value) || 0,
+      L:          parseFloat(document.getElementById("lenL").value)   || 0,
+      W:          parseFloat(document.getElementById("lenW").value)   || 0,
+      H:          parseFloat(document.getElementById("lenH").value)   || 0,
       includeShip: document.getElementById("includeShip").checked,
+      section232:  document.getElementById("section232").checked,
     };
   }
 
@@ -352,6 +393,7 @@
     const input = getInput();
     const r = calculate(input);
     const root = document.getElementById("result");
+    const d = r.duty;
 
     const shippingRows = r.shipping.map(s => `
       <tr class="ship-row">
@@ -374,20 +416,25 @@
         <h2>計算結果</h2>
 
         <div class="panel" style="background:var(--panel2); margin-top:0">
-          <h3>関税 (米国輸入時)</h3>
+          <h3>関税 (米国輸入時 / 2026年5月構造)</h3>
           <div style="font-size:11px; color:var(--muted); margin-bottom:6px">
-            <span class="pill">${r.country.name}</span><span class="pill">${r.category.name}</span>
+            <span class="pill">${r.country.name}</span>
+            <span class="pill">${r.category.name}</span>
+            ${d.isChina ? `<span class="pill warn">Section 301</span>` : ""}
+            ${d.section232 ? `<span class="pill warn">Section 232</span>` : ""}
           </div>
           <table>
             <tbody>
-              <tr><td>商品代金</td><td class="num">${fmtUsd(r.duty.price)}</td></tr>
-              <tr><td>課税対象送料 (${input.includeShip ? "含む" : "含まない"})</td><td class="num">${fmtUsd(r.duty.shipForDuty)}</td></tr>
-              <tr class="row-bold"><td>課税ベース (CIF)</td><td class="num">${fmtUsd(r.duty.base)}</td></tr>
-              <tr><td>MFN通常関税 (${r.duty.mfnRate}%)</td><td class="num">${fmtUsd(r.duty.mfn)}</td></tr>
-              <tr><td>相互関税 / Reciprocal (${r.duty.reciRate}%)</td><td class="num">${fmtUsd(r.duty.recip)}</td></tr>
-              <tr class="row-accent"><td>関税合計 (実効 ${r.duty.totalRate.toFixed(1)}%)</td><td class="num">${fmtUsd(r.duty.totalDuty)}</td></tr>
-              <tr><td>MPF 処理手数料 (目安)</td><td class="num">${fmtUsd(r.duty.mpf)}</td></tr>
-              <tr class="row-bold"><td>輸入諸経費合計</td><td class="num">${fmtUsd(r.duty.totalImport)}</td></tr>
+              <tr><td>商品代金</td><td class="num">${fmtUsd(d.price)}</td></tr>
+              <tr><td>課税対象送料 (${input.includeShip ? "含む" : "含まない"})</td><td class="num">${fmtUsd(d.shipForDuty)}</td></tr>
+              <tr class="row-bold"><td>課税ベース (CIF)</td><td class="num">${fmtUsd(d.base)}</td></tr>
+              <tr><td>① MFN通常関税 (${d.mfnRate}%)</td><td class="num">${fmtUsd(d.mfn)}</td></tr>
+              <tr><td>② Section 122 一律 (${d.s122Rate}%) <span style="color:var(--warn); font-size:10px">※7月頃失効予定</span></td><td class="num">${fmtUsd(d.sec122)}</td></tr>
+              <tr class="${d.s301Rate===0?'row-zero':''}"><td>③ Section 301 中国製のみ (${d.s301Rate}%)</td><td class="num">${fmtUsd(d.sec301)}</td></tr>
+              <tr class="${d.s232Rate===0?'row-zero':''}"><td>④ Section 232 鉄鋼/アルミ/自動車 (${d.s232Rate}%)</td><td class="num">${fmtUsd(d.sec232)}</td></tr>
+              <tr class="row-accent"><td>関税合計 (実効 ${d.totalRate.toFixed(1)}%)</td><td class="num">${fmtUsd(d.totalDuty)}</td></tr>
+              <tr><td>MPF 処理手数料 (目安)</td><td class="num">${fmtUsd(d.mpf)}</td></tr>
+              <tr class="row-bold"><td>輸入諸経費合計</td><td class="num">${fmtUsd(d.totalImport)}</td></tr>
             </tbody>
           </table>
         </div>
@@ -411,10 +458,10 @@
         }
 
         <div class="panel" style="background:var(--panel2)">
-          <h3 style="color:var(--muted)">⚠ 注意事項</h3>
+          <h3 style="color:var(--muted)">⚠ 注意事項 / 最新情報</h3>
           <ul class="notes">
             ${r.notes.map(n => `<li>${n}</li>`).join("")}
-            <li>本ツールは概算です。正確な関税は HTS コードと現行の Executive Order を、送料は日本郵便公式の最新料金表を必ずご確認ください。</li>
+            <li>本ツールは概算です。正確な関税は HTS コードと CBP / USTR の最新告示を、送料は日本郵便公式の最新料金表を必ずご確認ください。</li>
           </ul>
         </div>
       </div>

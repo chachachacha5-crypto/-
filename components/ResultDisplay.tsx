@@ -17,11 +17,17 @@ export function ResultDisplay({ result }: { result: CalcResult }) {
     <section className="rounded-xl border border-slate-700 bg-slate-900/50 p-5 space-y-5">
       <h2 className="text-lg font-semibold text-slate-100">計算結果</h2>
 
-      {/* 関税内訳 */}
       <div className="rounded-lg border border-slate-700 bg-slate-950/40 p-4 space-y-2">
-        <h3 className="text-sm font-semibold text-blue-400">関税 (米国輸入時)</h3>
-        <div className="text-xs text-slate-400">
-          {duty.countryName} × {duty.categoryName}
+        <h3 className="text-sm font-semibold text-blue-400">関税 (米国輸入時 / 2026年5月構造)</h3>
+        <div className="text-xs text-slate-400 flex flex-wrap gap-1">
+          <span className="px-2 py-0.5 rounded-full bg-slate-800">{duty.countryName}</span>
+          <span className="px-2 py-0.5 rounded-full bg-slate-800">{duty.categoryName}</span>
+          {duty.isChinaOrigin && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">Section 301</span>
+          )}
+          {duty.section232Rate > 0 && (
+            <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-200">Section 232</span>
+          )}
         </div>
         <table className="w-full text-sm">
           <tbody>
@@ -31,23 +37,32 @@ export function ResultDisplay({ result }: { result: CalcResult }) {
               value={usd(duty.shippingForDutyUsd)}
             />
             <Row label="課税ベース (CIF)" value={usd(duty.dutyBaseUsd)} bold />
-            <Row label={`MFN通常関税 (${duty.mfnRate}%)`} value={usd(duty.mfnDutyUsd)} />
+            <Row label={`① MFN通常関税 (${duty.mfnRate}%)`} value={usd(duty.mfnDutyUsd)} />
             <Row
-              label={`相互関税 / Reciprocal (${duty.reciprocalRate}%)`}
-              value={usd(duty.reciprocalDutyUsd)}
+              label={`② Section 122 一律 (${duty.section122Rate}%) ※7月頃失効予定`}
+              value={usd(duty.section122Usd)}
             />
             <Row
-              label={`関税合計 (実効税率 ${duty.totalRate.toFixed(1)}%)`}
+              label={`③ Section 301 中国製のみ (${duty.section301Rate}%)`}
+              value={usd(duty.section301Usd)}
+              dim={duty.section301Rate === 0}
+            />
+            <Row
+              label={`④ Section 232 鉄鋼/アルミ/自動車 (${duty.section232Rate}%)`}
+              value={usd(duty.section232Usd)}
+              dim={duty.section232Rate === 0}
+            />
+            <Row
+              label={`関税合計 (実効 ${duty.totalRate.toFixed(1)}%)`}
               value={usd(duty.totalDutyUsd)}
               accent
             />
-            <Row label="MPF処理手数料 (目安)" value={usd(duty.mpfUsd)} />
+            <Row label="MPF 処理手数料 (目安)" value={usd(duty.mpfUsd)} />
             <Row label="輸入諸経費合計" value={usd(duty.totalImportFeeUsd)} bold />
           </tbody>
         </table>
       </div>
 
-      {/* 送料比較 */}
       <div className="rounded-lg border border-slate-700 bg-slate-950/40 p-4 space-y-2">
         <h3 className="text-sm font-semibold text-blue-400">送料 (日本→米国)</h3>
         <table className="w-full text-sm">
@@ -83,7 +98,6 @@ export function ResultDisplay({ result }: { result: CalcResult }) {
         </table>
       </div>
 
-      {/* 推奨総額 */}
       {recommended ? (
         <div className="rounded-lg border border-blue-500/40 bg-blue-500/10 p-4 space-y-1">
           <h3 className="text-sm font-semibold text-blue-300">
@@ -105,15 +119,14 @@ export function ResultDisplay({ result }: { result: CalcResult }) {
         </div>
       )}
 
-      {/* 注釈 */}
       <div className="rounded-lg border border-slate-700 bg-slate-950/40 p-4 space-y-1">
-        <h3 className="text-xs font-semibold text-slate-400">⚠ 注意事項</h3>
+        <h3 className="text-xs font-semibold text-slate-400">⚠ 注意事項 / 最新情報</h3>
         <ul className="text-xs text-slate-400 list-disc pl-5 space-y-1">
           {duty.notes.map((n, i) => (
             <li key={i}>{n}</li>
           ))}
           <li>
-            本ツールは概算です。実際の関税は HTS コードと現行の Executive Order を、送料は日本郵便公式の最新料金表を必ず確認してください。
+            本ツールは概算です。正確な関税は HTS コードと CBP / USTR の最新告示、送料は日本郵便公式の最新料金表を必ずご確認ください。
           </li>
         </ul>
       </div>
@@ -126,20 +139,32 @@ function Row({
   value,
   bold,
   accent,
+  dim,
 }: {
   label: string;
   value: string;
   bold?: boolean;
   accent?: boolean;
+  dim?: boolean;
 }) {
   return (
     <tr className="border-b border-slate-800 last:border-0">
-      <td className={`py-1 ${bold ? "font-semibold text-slate-100" : "text-slate-300"}`}>
+      <td
+        className={`py-1 ${
+          dim ? "text-slate-600" : bold ? "font-semibold text-slate-100" : "text-slate-300"
+        }`}
+      >
         {label}
       </td>
       <td
         className={`py-1 text-right tabular-nums ${
-          accent ? "text-blue-300 font-semibold" : bold ? "text-slate-100 font-semibold" : "text-slate-200"
+          dim
+            ? "text-slate-600"
+            : accent
+              ? "text-blue-300 font-semibold"
+              : bold
+                ? "text-slate-100 font-semibold"
+                : "text-slate-200"
         }`}
       >
         {value}

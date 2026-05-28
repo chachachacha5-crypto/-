@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { COUNTRIES, CATEGORIES, type CountryCode, type CategoryCode } from "@/lib/tariff";
-import { calculate, type CalcInput } from "@/lib/calculate";
+import { calculate, type CalcInput, type ShippingMode } from "@/lib/calculate";
 import { ResultDisplay } from "./ResultDisplay";
 
 const DEFAULT_INPUT: CalcInput = {
@@ -15,6 +15,8 @@ const DEFAULT_INPUT: CalcInput = {
   heightCm: 10,
   jpyToUsd: 155,
   includeShippingInDutyBase: true,
+  section232: false,
+  shippingMode: "DIRECT",
 };
 
 function NumberInput({
@@ -64,7 +66,7 @@ export function CalculatorForm() {
 
         <div className="grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1 text-sm col-span-2">
-            <span className="text-slate-300">生産国 (原産国)</span>
+            <span className="text-slate-300">生産国 (原産国 / eBay出品時に必須)</span>
             <select
               className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
               value={input.originCountry}
@@ -72,7 +74,8 @@ export function CalculatorForm() {
             >
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.code}>
-                  {c.name} (相互関税 +{c.reciprocalRate}%)
+                  {c.name}
+                  {c.code === "CN" ? " (Section 301 対象)" : ""}
                 </option>
               ))}
             </select>
@@ -93,50 +96,25 @@ export function CalculatorForm() {
             </select>
           </label>
 
-          <NumberInput
-            label="商品代金"
-            value={input.itemPriceUsd}
-            onChange={(v) => update("itemPriceUsd", v)}
-            step={1}
-            suffix="USD"
-          />
-          <NumberInput
-            label="為替"
-            value={input.jpyToUsd}
-            onChange={(v) => update("jpyToUsd", v)}
-            step={0.1}
-            suffix="円/USD"
-          />
+          <label className="flex flex-col gap-1 text-sm col-span-2">
+            <span className="text-slate-300">発送方法</span>
+            <select
+              className="rounded-md border border-slate-700 bg-slate-900 px-3 py-2 text-slate-100"
+              value={input.shippingMode}
+              onChange={(e) => update("shippingMode", e.target.value as ShippingMode)}
+            >
+              <option value="DIRECT">直接発送 (EMS / DHL / FedEx)</option>
+              <option value="EIS">eBay International Shipping (eIS / GSP)</option>
+            </select>
+          </label>
 
-          <NumberInput
-            label="実重量"
-            value={input.actualWeightKg}
-            onChange={(v) => update("actualWeightKg", v)}
-            step={0.1}
-            suffix="kg"
-          />
+          <NumberInput label="商品代金" value={input.itemPriceUsd} onChange={(v) => update("itemPriceUsd", v)} step={1} suffix="USD" />
+          <NumberInput label="為替" value={input.jpyToUsd} onChange={(v) => update("jpyToUsd", v)} step={0.1} suffix="円/USD" />
+          <NumberInput label="実重量" value={input.actualWeightKg} onChange={(v) => update("actualWeightKg", v)} step={0.1} suffix="kg" />
           <div />
-          <NumberInput
-            label="長さ (L)"
-            value={input.lengthCm}
-            onChange={(v) => update("lengthCm", v)}
-            step={1}
-            suffix="cm"
-          />
-          <NumberInput
-            label="横 (W)"
-            value={input.widthCm}
-            onChange={(v) => update("widthCm", v)}
-            step={1}
-            suffix="cm"
-          />
-          <NumberInput
-            label="高 (H)"
-            value={input.heightCm}
-            onChange={(v) => update("heightCm", v)}
-            step={1}
-            suffix="cm"
-          />
+          <NumberInput label="長さ (L)" value={input.lengthCm} onChange={(v) => update("lengthCm", v)} step={1} suffix="cm" />
+          <NumberInput label="横 (W)" value={input.widthCm} onChange={(v) => update("widthCm", v)} step={1} suffix="cm" />
+          <NumberInput label="高 (H)" value={input.heightCm} onChange={(v) => update("heightCm", v)} step={1} suffix="cm" />
 
           <label className="col-span-2 flex items-center gap-2 text-sm mt-2">
             <input
@@ -144,9 +122,16 @@ export function CalculatorForm() {
               checked={input.includeShippingInDutyBase}
               onChange={(e) => update("includeShippingInDutyBase", e.target.checked)}
             />
-            <span className="text-slate-300">
-              関税の課税ベースに送料を含める (航空便CIFが原則)
-            </span>
+            <span className="text-slate-300">関税の課税ベースに送料を含める (航空便CIFが原則)</span>
+          </label>
+
+          <label className="col-span-2 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={input.section232}
+              onChange={(e) => update("section232", e.target.checked)}
+            />
+            <span className="text-slate-300">鉄鋼・アルミ・自動車部品である (Section 232 +25%)</span>
           </label>
         </div>
       </section>

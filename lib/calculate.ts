@@ -1,6 +1,8 @@
 import {
   findCountry,
   findCategory,
+  SECTION_122_RATE,
+  SECTION_232_RATE,
   MPF_RATE,
   MPF_MIN_USD,
   MPF_MAX_USD,
@@ -9,39 +11,44 @@ import {
 } from "./tariff";
 import { SHIPPING_OPTIONS, calculateShipping, type ShippingCalc } from "./shipping";
 
+export type ShippingMode = "DIRECT" | "EIS";
+
 export interface CalcInput {
-  // 商品代金 (eBay販売価格、USD)
   itemPriceUsd: number;
-  // 生産国(原産国)
   originCountry: CountryCode;
-  // カテゴリ
   category: CategoryCode;
-  // 実重量 (kg)
   actualWeightKg: number;
-  // 寸法 (cm)
   lengthCm: number;
   widthCm: number;
   heightCm: number;
-  // 為替 (1USD = X JPY)
   jpyToUsd: number;
-  // 関税の課税ベースに送料を含めるか (海上輸送 CIF / 航空輸送 では含むのが原則)
   includeShippingInDutyBase: boolean;
+  // 鉄鋼/アルミ/自動車部品 (Section 232 対象)
+  section232: boolean;
+  // 発送方法 (eBay代行 or 直接発送)
+  shippingMode: ShippingMode;
 }
 
 export interface DutyBreakdown {
   itemPriceUsd: number;
   shippingForDutyUsd: number;
   dutyBaseUsd: number;
-  mfnRate: number; // %
-  reciprocalRate: number; // %
-  totalRate: number; // %
+  // 各レイヤーの料率と金額
+  mfnRate: number;
+  section122Rate: number;
+  section301Rate: number;
+  section232Rate: number;
+  totalRate: number;
   mfnDutyUsd: number;
-  reciprocalDutyUsd: number;
+  section122Usd: number;
+  section301Usd: number;
+  section232Usd: number;
   totalDutyUsd: number;
   mpfUsd: number;
   totalImportFeeUsd: number;
   countryName: string;
   categoryName: string;
+  isChinaOrigin: boolean;
   notes: string[];
 }
 
@@ -49,12 +56,11 @@ export interface CalcResult {
   input: CalcInput;
   shipping: ShippingCalc[];
   duty: DutyBreakdown;
-  // 推奨送料(EMSベース)で総コスト
   recommended: {
     service: string;
     shippingJpy: number;
     shippingUsd: number;
-    landedCostUsd: number; // = 商品代金 + 関税 + 送料 + MPF
+    landedCostUsd: number;
   } | null;
 }
 
@@ -62,7 +68,6 @@ export function calculate(input: CalcInput): CalcResult {
   const country = findCountry(input.originCountry);
   const category = findCategory(input.category);
 
-  // 送料計算 (全サービス)
   const shipping = SHIPPING_OPTIONS.map((opt) =>
     calculateShipping(
       opt,
@@ -74,36 +79,45 @@ export function calculate(input: CalcInput): CalcResult {
     ),
   );
 
-  // 推奨はEMS(あれば)
   const ems = shipping.find((s) => s.service === "EMS" && !s.oversize && s.feeUsd !== null);
   const shippingForDutyUsd =
     input.includeShippingInDutyBase && ems?.feeUsd ? ems.feeUsd : 0;
-
   const dutyBase = input.itemPriceUsd + shippingForDutyUsd;
-  const mfnDuty = dutyBase * (category.mfnRate / 100);
-  const reciprocalDuty = dutyBase * (country.reciprocalRate / 100);
-  const totalDuty = mfnDuty + reciprocalDuty;
 
-  // MPF
+  const mfnRate = category.mfnRate;
+  const section122Rate = SECTION_122_RATE;
+  const isChina = country.code === "CN";
+  const section301Rate = isChina ? category.section301Rate : 0;
+  const section232Rate = input.section232 ? SECTION_232_RATE : 0;
+
+  const mfnDuty = dutyBase * (mfnRate / 100);
+  const section122 = dutyBase * (section122Rate / 100);
+  const section301 = dutyBase * (section301Rate / 100);
+  const section232 = dutyBase * (section232Rate / 100);
+  const totalDuty = mfnDuty + section122 + section301 + section232;
+  const totalRate = mfnRate + section122Rate + section301Rate + section232Rate;
+
   let mpf = dutyBase * MPF_RATE;
   if (mpf < MPF_MIN_USD) mpf = MPF_MIN_USD;
   if (mpf > MPF_MAX_USD) mpf = MPF_MAX_USD;
-  // 国際郵便 (EMS) は通常 MPF 加算なし。FedEx/DHL等の正式申告で課される
-  // ここではユーザに見えるように郵便向けは「目安(非課税の場合あり)」と注釈
-  // 簡易化: 通常MPFは表示はするがTotal上は加算する(慎重側)
 
   const notes: string[] = [];
-  notes.push(
-    "2025年8月29日でde minimis ($800免税枠) が全世界で廃止 → 全ての貨物が関税対象",
-  );
-  notes.push(
-    `相互関税は2025年中も頻繁に変動しています (現在の代表値: ${country.name}=${country.reciprocalRate}%)`,
-  );
-  if (country.code === "MX" || country.code === "CA") {
-    notes.push("USMCA原産品は通常無税。原産地証明があれば相互関税0%扱いになるケースあり");
+  notes.push("2026年2月20日 最高裁判決で IEEPA 関税 (国別相互関税) は違憲・撤廃 (2026/2/24 失効)");
+  notes.push("Section 122 (+10%) は 150日上限のため 2026年7月頃に失効予定。継続には議会立法が必要");
+  if (isChina) {
+    notes.push(`中国製品は Section 301 (+${category.section301Rate}% / カテゴリ代表値) が継続中`);
   }
-  if (category.code === "electronics" || category.code === "cameras") {
-    notes.push("MFN税率は無税/低率だが、相互関税は別途課税される");
+  if (input.section232) {
+    notes.push("Section 232 (+25%) は鉄鋼/アルミ/自動車・関連部品が対象");
+  }
+  if (country.code === "MX" || country.code === "CA") {
+    notes.push("USMCA 原産品は通常無税。原産地証明があれば Section 122 等の扱いが変わる場合あり");
+  }
+  notes.push("de minimis ($800免税枠) は 2025/8/29 廃止以降、停止継続中 → 全貨物が関税対象");
+  if (input.shippingMode === "EIS") {
+    notes.push("eIS / GSP 利用時: チェックアウト時にeBayが関税徴収・代行。原産国とHTSコードはeBayが処理");
+  } else {
+    notes.push("直接発送時: 原産国・HTSコード・正確な商品価値を申告書に明記。買い手がCBPに直接支払い");
   }
   if (ems?.oversize) {
     notes.push("EMSが利用できないサイズ・重量です。FedEx/DHLでの送付を検討してください");
@@ -126,16 +140,21 @@ export function calculate(input: CalcInput): CalcResult {
       itemPriceUsd: input.itemPriceUsd,
       shippingForDutyUsd,
       dutyBaseUsd: dutyBase,
-      mfnRate: category.mfnRate,
-      reciprocalRate: country.reciprocalRate,
-      totalRate: category.mfnRate + country.reciprocalRate,
+      mfnRate,
+      section122Rate,
+      section301Rate,
+      section232Rate,
+      totalRate,
       mfnDutyUsd: mfnDuty,
-      reciprocalDutyUsd: reciprocalDuty,
+      section122Usd: section122,
+      section301Usd: section301,
+      section232Usd: section232,
       totalDutyUsd: totalDuty,
       mpfUsd: mpf,
       totalImportFeeUsd: totalDuty + mpf,
       countryName: country.name,
       categoryName: category.name,
+      isChinaOrigin: isChina,
       notes,
     },
     recommended,

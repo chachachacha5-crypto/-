@@ -1,7 +1,24 @@
-# eBay US 関税・送料 概算ツール
+# eBay US 関税・送料 概算ツール (2026年版)
 
-日本→米国向けの eBay 販売で、**生産国 × 商品カテゴリ × サイズ・重量** から
-関税(2025年の相互関税対応) と 送料(EMS / eパケット / 船便) を概算する Next.js アプリ。
+日本→米国向けの eBay 販売で、**原産国 × カテゴリ × サイズ・重量** から
+関税(2026年2月SCOTUS判決後の構造)と送料(EMS / eパケット / 船便)を概算する Next.js アプリ。
+
+スマホで使う場合: `docs/index.html` を GitHub Pages か htmlpreview で開けば
+インストール不要・1ファイルで動きます。
+
+## 2026年5月時点の関税構造
+
+| 区分 | 内容 | 適用 |
+|---|---|---|
+| MFN 通常関税 | HTSコード別の通常税率 (カテゴリで決まる) | 常時 |
+| **Section 122** | 全世界一律 **+10%** (2026/2/24発効, 150日上限) | 暫定 (2026年7月頃失効予定) |
+| **Section 301** | 中国製品のみ追加 (品目別 7.5〜25%) | 中国製のみ |
+| **Section 232** | 鉄鋼/アルミ/自動車・関連部品 +25% | 該当製品のみ |
+| MPF 処理手数料 | 0.3464% (最低 $32.71, 上限 $634.62) | 常時 |
+| ~~IEEPA 相互関税~~ | ~~国別 (日本15%, 中国30%, EU15% 等)~~ | **2026/2/24 失効** |
+| de minimis ($800) | 2025/8/29 廃止以降 停止継続 | 全貨物が関税対象 |
+
+最高裁判決: [Learning Resources, Inc. v. Trump (02/20/2026)](https://www.supremecourt.gov/opinions/25pdf/24-1287_4gcj.pdf) — 6-3 で IEEPA 関税を違憲と判断。
 
 ## 起動
 
@@ -11,32 +28,24 @@ npm run dev
 # http://localhost:3000
 ```
 
-## 機能
-
-- 18 ヶ国 (日本/中国/韓国/ベトナム/EU/英国/メキシコ/カナダ 他) の **相互関税 (Reciprocal Tariff)** 代表値
-- 16 カテゴリ (衣料品/靴/バッグ/時計/電子機器/カメラ/ジュエリー/楽器 他) の **MFN 関税** 代表値
-- **送料**: 日本郵便 EMS / 国際eパケット / 船便小包 を同時比較
-  - **実重量 vs 容積重量** (EMS は L×W×H/6000)
-  - サイズ規制 (EMS: 1辺 1.5m / 周長 3m / 30kg) の自動チェック
-- **MPF** (Merchandise Processing Fee, 0.3464%, $32.71〜$634.62) を加算
-- **Landed Cost** (= 商品代金 + 関税 + 送料 + MPF) を一括表示
-
 ## ファイル構成
 
 ```
 app/
-  page.tsx                  # トップ
+  page.tsx
   layout.tsx
   api/calculate/route.ts    # JSON POST API
 components/
-  CalculatorForm.tsx        # 入力フォーム
-  ResultDisplay.tsx         # 結果表示
+  CalculatorForm.tsx
+  ResultDisplay.tsx
 lib/
-  tariff.ts                 # 国別税率 / カテゴリ別税率テーブル
+  tariff.ts                 # 国・カテゴリ・各Section税率テーブル
   shipping.ts               # 送料テーブル + 容積重量計算
-  calculate.ts              # 関税・送料統合計算
+  calculate.ts              # MFN/S122/S301/S232/MPF 統合計算
+docs/
+  index.html                # スマホ向け 1ファイル版 (サーバ不要)
 scripts/
-  sanity-check.ts           # 動作確認用スクリプト
+  sanity-check.ts           # 動作確認スクリプト
 ```
 
 ## API 例
@@ -51,13 +60,14 @@ curl -X POST http://localhost:3000/api/calculate \
     "actualWeightKg": 1.0,
     "lengthCm": 30, "widthCm": 20, "heightCm": 10,
     "jpyToUsd": 155,
-    "includeShippingInDutyBase": true
+    "includeShippingInDutyBase": true,
+    "section232": false,
+    "shippingMode": "DIRECT"
   }'
 ```
 
 ## 注意事項
 
-- 2025年 8月29日で **de minimis ($800 免税枠) が全世界で廃止**。すべての貨物が関税対象。
-- 相互関税は 2025年中も頻繁に変動。本ツールの値は **2025年後半時点の代表値**。
-- 正確な税率は **HTS コード** と最新の **Executive Order**、送料は日本郵便公式の最新料金表をご確認ください。
-- USMCA 適合品 (メキシコ/カナダ原産) は通常無税。
+- Section 122 は 150日上限のため **2026年7月頃に失効予定**。継続には議会立法が必要。
+- 正確な税率は **HTSコード** と CBP / USTR の最新告示を、送料は日本郵便公式料金表を必ずご確認ください。
+- USMCA 原産品 (メキシコ/カナダ) は通常無税で扱われる場合があります。
