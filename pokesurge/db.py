@@ -108,6 +108,35 @@ CREATE TABLE IF NOT EXISTS card_links (
 );
 CREATE INDEX IF NOT EXISTS idx_links_en ON card_links(en_card_id, score DESC);
 CREATE INDEX IF NOT EXISTS idx_links_jp ON card_links(jp_card_id);
+
+-- Time-series of Japanese-market prices, parallel to price_snapshots.
+-- Sources: 'snkrdunk', 'mercari', 'surugaya', 'cardrush', 'manual', ...
+CREATE TABLE IF NOT EXISTS jp_price_snapshots (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    jp_card_id    TEXT NOT NULL,
+    source        TEXT NOT NULL,
+    condition     TEXT,            -- 'raw' | 'PSA10' | 'PSA9' | 'NM' | NULL
+    currency      TEXT NOT NULL DEFAULT 'JPY',
+    price         REAL NOT NULL,
+    metric        TEXT NOT NULL,   -- 'lowest_ask' | 'highest_bid' | 'last_trade' | 'mean'
+    source_url    TEXT,
+    snapshot_at   TEXT NOT NULL,
+    FOREIGN KEY (jp_card_id) REFERENCES jp_cards(id)
+);
+CREATE INDEX IF NOT EXISTS idx_jp_snap_card   ON jp_price_snapshots(jp_card_id, snapshot_at);
+CREATE INDEX IF NOT EXISTS idx_jp_snap_recent ON jp_price_snapshots(snapshot_at);
+CREATE INDEX IF NOT EXISTS idx_jp_snap_lookup
+    ON jp_price_snapshots(source, metric, jp_card_id, snapshot_at);
+
+-- Optional manual mapping from a JP card to its SNKRDUNK product page.
+-- The fetcher uses this table when present.
+CREATE TABLE IF NOT EXISTS snkrdunk_links (
+    jp_card_id  TEXT PRIMARY KEY,
+    url         TEXT NOT NULL,
+    note        TEXT,
+    linked_at   TEXT,
+    FOREIGN KEY (jp_card_id) REFERENCES jp_cards(id)
+);
 """
 
 
