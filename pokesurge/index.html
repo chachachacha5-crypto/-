@@ -38,27 +38,46 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 .card .links a { color: #8ab4f8; margin-right: 10px; text-decoration: none; }
 .card .links a:hover { text-decoration: underline; }
 .spread-pair { background: #1a1d24; border: 1px solid #2a2f3a;
-               border-radius: 10px; padding: 12px; }
-.spread-pair .header { display: flex; justify-content: space-between;
-                       align-items: baseline; margin-bottom: 10px; }
-.spread-pair .arb { font-size: 20px; font-weight: 700; color: #fbbc04; }
+               border-radius: 10px; padding: 14px; }
+.spread-pair .top { display: flex; justify-content: space-between;
+                    align-items: flex-start; margin-bottom: 12px; gap: 8px; }
+.spread-pair .top .breadcrumb { font-size: 11px; color: #9aa0a6;
+                                line-height: 1.5; }
+.spread-pair .arb { font-size: 22px; font-weight: 700; color: #fbbc04;
+                    line-height: 1; white-space: nowrap; }
 .spread-pair .arb .label { font-size: 10px; color: #9aa0a6; font-weight: 400;
                            margin-right: 4px; }
-.spread-pair .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.spread-pair .side { display: flex; gap: 8px; min-width: 0; }
-.spread-pair .side img { width: 60px; height: auto; border-radius: 4px;
-                          flex-shrink: 0; background: #0f1115; }
-.spread-pair .side .name { font-size: 12px; font-weight: 600;
-                            white-space: nowrap; overflow: hidden;
-                            text-overflow: ellipsis; }
-.spread-pair .side .set  { font-size: 10px; color: #9aa0a6; }
-.spread-pair .side .price { font-size: 14px; font-weight: 600;
-                             margin-top: 4px; }
-.spread-pair .label-row { display: flex; gap: 16px; font-size: 11px;
-                          color: #9aa0a6; margin-top: 8px; }
-.spread-pair .label-row .v { color: #e8eaed; font-weight: 600; }
-.spread-pair .links { font-size: 11px; margin-top: 8px; }
-.spread-pair .links a { color: #8ab4f8; margin-right: 10px; text-decoration: none; }
+.spread-pair .primary { display: flex; gap: 12px; margin-bottom: 12px; }
+.spread-pair .primary img { width: 110px; height: auto; border-radius: 6px;
+                            background: #0f1115; flex-shrink: 0; }
+.spread-pair .primary .body { flex: 1; min-width: 0; }
+.spread-pair .primary .name { font-size: 16px; font-weight: 700;
+                              margin-bottom: 2px; overflow: hidden;
+                              white-space: nowrap; text-overflow: ellipsis; }
+.spread-pair .primary .set  { font-size: 11px; color: #9aa0a6; margin-bottom: 8px; }
+.spread-pair .primary .price { font-size: 22px; font-weight: 700; color: #34a853; }
+.spread-pair .primary .source { font-size: 11px; color: #9aa0a6;
+                                font-weight: 400; margin-left: 6px; }
+.spread-pair .reference { display: flex; gap: 8px;
+                          background: #14171c; border: 1px solid #2a2f3a;
+                          border-radius: 6px; padding: 8px; margin-bottom: 10px; }
+.spread-pair .reference img { width: 40px; height: auto; border-radius: 3px;
+                              background: #0f1115; flex-shrink: 0; }
+.spread-pair .reference .ref-body { flex: 1; min-width: 0; font-size: 11px;
+                                    line-height: 1.6; }
+.spread-pair .reference .ref-name { font-weight: 600; color: #cfd2d6; }
+.spread-pair .reference .ref-meta { color: #9aa0a6; }
+.spread-pair .reference .ref-stats { margin-top: 4px; }
+.spread-pair .links { display: flex; flex-wrap: wrap; gap: 8px;
+                      font-size: 12px; margin-top: 4px; }
+.spread-pair .links a { color: #8ab4f8; text-decoration: none; }
+.spread-pair .links a.primary-link {
+    background: #1a73e8; color: #fff; padding: 6px 12px;
+    border-radius: 6px; font-weight: 600;
+}
+.spread-pair .links a.primary-link:hover { background: #1765cc; }
+.spread-pair .links a.ref-link { padding: 6px 0; }
+.spread-pair .links a:hover { text-decoration: underline; }
 .empty { color: #9aa0a6; font-style: italic; padding: 12px 0; }
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
@@ -68,8 +87,8 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 <body>
 <header>
   <h1>pokesurge report (sample)</h1>
-  <div class="meta">generated 2026-05-31 13:41 UTC &middot;
-    surge: 2 cards &middot; spread: 1 pairs &middot; <em>synthetic demo data</em></div>
+  <div class="meta">generated 2026-05-31 15:59 UTC &middot;
+    surge: 3 cards &middot; spread: 3 pairs &middot; <em>synthetic demo data</em></div>
   <nav>
     <a href="#spread">💴 仕入れ候補 (Spread)</a>
     <a href="#surge">🔥 海外サージ (Surge)</a>
@@ -81,51 +100,96 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
     min_surge=+5% min_spread=+5% min_eur=€5</p>
   <div class="grid">
     <div class="spread-pair">
-      <div class="header">
-        <div>
-          <div style="font-size:11px;color:#9aa0a6;">
-            Charizard ex #215
-            → リザードンex #115
-          </div>
-        </div>
+      <div class="top">
+        <div class="breadcrumb">仕入れ候補 &middot; #115 SAR</div>
         <div class="arb"><span class="label">arb</span>3.18</div>
       </div>
-      <div class="row">
-        <div class="side">
-          <img class="thumb" src="https://images.pokemontcg.io/sv3/215.png" alt="" loading="lazy">
-          <div style="min-width:0;flex:1;">
-            <div class="name">Charizard ex</div>
-            <div class="set">Obsidian Flames</div>
-            <div class="price">¥23,800
-              <span style="color:#9aa0a6;font-weight:400;font-size:10px;">
-                (€140.00)
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="side">
-          <img class="thumb" src="https://assets.tcgdex.net/ja/sv/sv3/115/high.webp" alt="" loading="lazy">
-          <div style="min-width:0;flex:1;">
-            <div class="name">リザードンex</div>
-            <div class="set">黒炎の支配者 — SAR</div>
-            <div class="price">¥9,500
-              <span style="color:#9aa0a6;font-weight:400;font-size:10px;">
-                (snkrdunk)
-              </span>
-            </div>
-          </div>
+      <div class="primary">
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv3/115/high.webp" alt="" loading="lazy">
+        <div class="body">
+          <div class="name">リザードンex</div>
+          <div class="set">黒炎の支配者</div>
+          <div class="price">¥9,500 <span class="source">(snkrdunk)</span></div>
         </div>
       </div>
-      <div class="label-row">
-        <div><span>surge 30d</span> <span class="v"><span class="pos">+211.1%</span></span></div>
-        <div><span>spread</span> <span class="v"><span class="pos">+150.5%</span></span></div>
+      <div class="reference">
+        <img class="en-thumb" src="https://images.pokemontcg.io/sv3/215.png" alt="" loading="lazy">
+        <div class="ref-body">
+          <div><span class="ref-meta">海外参考:</span>
+               <span class="ref-name">Charizard ex</span>
+               <span class="ref-meta">(Obsidian Flames)</span></div>
+          <div class="ref-meta">avg1 €140.00 → 換算 ¥23,800</div>
+          <div class="ref-stats">surge 30d <span class="pos">+211.1%</span>
+               &middot; spread <span class="pos">+150.5%</span></div>
+        </div>
       </div>
       <div class="links">
-        <a href="https://www.cardmarket.com/" target="_blank" rel="noopener">Cardmarket</a>
-        <a href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
-        <a href="https://snkrdunk.com/" target="_blank" rel="noopener">Snkrdunk</a>
+        <a class="primary-link" href="https://snkrdunk.com/" target="_blank" rel="noopener">スニダンで見る →</a>
+        <a class="ref-link" href="https://www.cardmarket.com/" target="_blank" rel="noopener">Cardmarket</a> &middot;
+        <a class="ref-link" href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
       </div>
-    </div></div>
+    </div>
+    <div class="spread-pair">
+      <div class="top">
+        <div class="breadcrumb">仕入れ候補 &middot; #104 SAR</div>
+        <div class="arb"><span class="label">arb</span>0.81</div>
+      </div>
+      <div class="primary">
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv2D/104/high.webp" alt="" loading="lazy">
+        <div class="body">
+          <div class="name">デカヌチャン</div>
+          <div class="set">クレイバースト</div>
+          <div class="price">¥3,200 <span class="source">(snkrdunk)</span></div>
+        </div>
+      </div>
+      <div class="reference">
+        <img class="en-thumb" src="https://images.pokemontcg.io/sv2/241.png" alt="" loading="lazy">
+        <div class="ref-body">
+          <div><span class="ref-meta">海外参考:</span>
+               <span class="ref-name">Tinkaton</span>
+               <span class="ref-meta">(Paldea Evolved)</span></div>
+          <div class="ref-meta">avg1 €35.00 → 換算 ¥5,950</div>
+          <div class="ref-stats">surge 30d <span class="pos">+94.4%</span>
+               &middot; spread <span class="pos">+85.9%</span></div>
+        </div>
+      </div>
+      <div class="links">
+        <a class="primary-link" href="https://snkrdunk.com/" target="_blank" rel="noopener">スニダンで見る →</a>
+        <a class="ref-link" href="https://www.cardmarket.com/" target="_blank" rel="noopener">Cardmarket</a> &middot;
+        <a class="ref-link" href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
+      </div>
+    </div>
+    <div class="spread-pair">
+      <div class="top">
+        <div class="breadcrumb">仕入れ候補 &middot; #105 SAR</div>
+        <div class="arb"><span class="label">arb</span>0.60</div>
+      </div>
+      <div class="primary">
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv7a/105/high.webp" alt="" loading="lazy">
+        <div class="body">
+          <div class="name">ピカチュウex</div>
+          <div class="set">テラスタルフェスex</div>
+          <div class="price">¥7,800 <span class="source">(snkrdunk)</span></div>
+        </div>
+      </div>
+      <div class="reference">
+        <img class="en-thumb" src="https://images.pokemontcg.io/sv8/238.png" alt="" loading="lazy">
+        <div class="ref-body">
+          <div><span class="ref-meta">海外参考:</span>
+               <span class="ref-name">Pikachu ex</span>
+               <span class="ref-meta">(Surging Sparks)</span></div>
+          <div class="ref-meta">avg1 €85.00 → 換算 ¥14,450</div>
+          <div class="ref-stats">surge 30d <span class="pos">+70.0%</span>
+               &middot; spread <span class="pos">+85.3%</span></div>
+        </div>
+      </div>
+      <div class="links">
+        <a class="primary-link" href="https://snkrdunk.com/" target="_blank" rel="noopener">スニダンで見る →</a>
+        <a class="ref-link" href="https://www.cardmarket.com/" target="_blank" rel="noopener">Cardmarket</a> &middot;
+        <a class="ref-link" href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
+      </div>
+    </div>
+  </div>
 </section>
 <section id="surge">
   <h2>🔥 海外サージ — Cardmarket avg1 vs avg30</h2>
@@ -149,14 +213,14 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
       </div>
     </div>
     <div class="card">
-      <img class="thumb" src="https://images.pokemontcg.io/swsh4/44.png" alt="" loading="lazy">
+      <img class="thumb" src="https://images.pokemontcg.io/sv2/241.png" alt="" loading="lazy">
       <div class="info">
-        <div class="name">Pikachu V #44</div>
-        <div class="set">Vivid Voltage — Ultra Rare</div>
+        <div class="name">Tinkaton #241</div>
+        <div class="set">Paldea Evolved — Special Illustration Rare</div>
         <div class="stats">
-          <div><span class="label">30d</span> <span class="pos">+22.2%</span>
-               &nbsp;<span class="label">7d</span> <span class="pos">+10.0%</span></div>
-          <div><span class="label">avg1</span> €22.00
+          <div><span class="label">30d</span> <span class="pos">+94.4%</span>
+               &nbsp;<span class="label">7d</span> <span class="pos">+25.0%</span></div>
+          <div><span class="label">avg1</span> €35.00
                &nbsp;<span class="label">avg30</span> €18.00</div>
         </div>
         <div class="links">
@@ -164,7 +228,25 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
           <a href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
         </div>
       </div>
-    </div></div>
+    </div>
+    <div class="card">
+      <img class="thumb" src="https://images.pokemontcg.io/sv8/238.png" alt="" loading="lazy">
+      <div class="info">
+        <div class="name">Pikachu ex #238</div>
+        <div class="set">Surging Sparks — Special Illustration Rare</div>
+        <div class="stats">
+          <div><span class="label">30d</span> <span class="pos">+70.0%</span>
+               &nbsp;<span class="label">7d</span> <span class="pos">+21.4%</span></div>
+          <div><span class="label">avg1</span> €85.00
+               &nbsp;<span class="label">avg30</span> €50.00</div>
+        </div>
+        <div class="links">
+          <a href="https://www.cardmarket.com/" target="_blank" rel="noopener">Cardmarket</a>
+          <a href="https://www.tcgplayer.com/" target="_blank" rel="noopener">TCGPlayer</a>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 </body>
 </html>
