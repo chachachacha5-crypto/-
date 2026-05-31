@@ -93,11 +93,21 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
   .grid { grid-template-columns: 1fr; }
 }
 </style>
+<script>
+function jpImgFail(img) {
+  var name = img.getAttribute('data-jp-name') || '?';
+  var d = document.createElement('div');
+  d.className = 'jp-placeholder';
+  d.innerHTML = '<div class="tag">JP 画像</div><div class="nm"></div>';
+  d.lastChild.textContent = name;
+  img.replaceWith(d);
+}
+</script>
 </head>
 <body>
 <header>
   <h1>pokesurge report (sample)</h1>
-  <div class="meta">generated 2026-05-31 22:12 UTC &middot;
+  <div class="meta">generated 2026-05-31 23:20 UTC &middot;
     surge: 3 cards &middot; spread: 3 pairs &middot; <em>synthetic demo data</em></div>
   <nav>
     <a href="#spread">💴 仕入れ候補 (Spread)</a>
@@ -115,7 +125,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>3.18</div>
       </div>
       <div class="primary">
-        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">リザードンex</div></div>
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv3/115/high.webp" data-jp-name="リザードンex" onerror="jpImgFail(this)" alt="" loading="lazy">
         <div class="body">
           <div class="name">リザードンex</div>
           <div class="set">黒炎の支配者</div>
@@ -145,7 +155,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>0.81</div>
       </div>
       <div class="primary">
-        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">デカヌチャン</div></div>
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv2D/104/high.webp" data-jp-name="デカヌチャン" onerror="jpImgFail(this)" alt="" loading="lazy">
         <div class="body">
           <div class="name">デカヌチャン</div>
           <div class="set">クレイバースト</div>
@@ -175,7 +185,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>0.60</div>
       </div>
       <div class="primary">
-        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">ピカチュウex</div></div>
+        <img class="jp-thumb" src="https://assets.tcgdex.net/ja/sv/sv7a/105/high.webp" data-jp-name="ピカチュウex" onerror="jpImgFail(this)" alt="" loading="lazy">
         <div class="body">
           <div class="name">ピカチュウex</div>
           <div class="set">テラスタルフェスex</div>
