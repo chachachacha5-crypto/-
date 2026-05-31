@@ -82,6 +82,16 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 .spread-pair .links a.primary-link:hover { background: #1765cc; }
 .spread-pair .links a.ref-link { padding: 6px 0; }
 .spread-pair .links a:hover { text-decoration: underline; }
+.jp-placeholder { width: 110px; height: 154px; background: #2a2f3a;
+                  border: 1px dashed #3a4150; border-radius: 6px;
+                  display: flex; flex-direction: column;
+                  justify-content: center; align-items: center;
+                  padding: 8px; text-align: center; flex-shrink: 0; }
+.jp-placeholder .tag { font-size: 9px; color: #9aa0a6;
+                       text-transform: uppercase; letter-spacing: 1px;
+                       margin-bottom: 10px; }
+.jp-placeholder .nm { font-size: 12px; color: #e8eaed; font-weight: 600;
+                      line-height: 1.4; word-break: break-word; }
 .empty { color: #9aa0a6; font-style: italic; padding: 12px 0; }
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
@@ -148,10 +158,18 @@ def _render_spread_pair(r: dict) -> str:
         f'<a class="ref-link" href="{_esc(r["tcgplayer_url"])}" target="_blank" rel="noopener">TCGPlayer</a>'
             if r.get("tcgplayer_url") else "",
     ]))
-    # Fall back to the EN card image when JP source has no image (TCGdex's
-    # Japanese image coverage has gaps). Same artwork is often used for SAR
-    # cards across locales anyway.
-    primary_img = r.get('jp_image') or r.get('en_image')
+    # JP image from TCGdex if available; otherwise a clearly-labelled
+    # placeholder. Never fall back to the EN art — that misleads the eye
+    # into thinking the user is looking at the Japanese card.
+    if r.get('jp_image'):
+        primary_img_html = f'<img class="jp-thumb" src="{_esc(r["jp_image"])}" alt="" loading="lazy">'
+    else:
+        primary_img_html = (
+            f'<div class="jp-placeholder">'
+            f'<div class="tag">JP 画像</div>'
+            f'<div class="nm">{_esc(r.get("jp_name") or "?")}</div>'
+            f'</div>'
+        )
     return f"""
     <div class="spread-pair">
       <div class="top">
@@ -161,7 +179,7 @@ def _render_spread_pair(r: dict) -> str:
         <div class="arb"><span class="label">arb</span>{r.get('arb_score', 0):.2f}</div>
       </div>
       <div class="primary">
-        {_img(primary_img, 'jp-thumb')}
+        {primary_img_html}
         <div class="body">
           <div class="name">{_esc(r.get('jp_name'))}</div>
           <div class="set">{_esc(r.get('jp_set_name'))}</div>
