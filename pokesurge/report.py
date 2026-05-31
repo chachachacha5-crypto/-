@@ -148,6 +148,10 @@ def _render_spread_pair(r: dict) -> str:
         f'<a class="ref-link" href="{_esc(r["tcgplayer_url"])}" target="_blank" rel="noopener">TCGPlayer</a>'
             if r.get("tcgplayer_url") else "",
     ]))
+    # Fall back to the EN card image when JP source has no image (TCGdex's
+    # Japanese image coverage has gaps). Same artwork is often used for SAR
+    # cards across locales anyway.
+    primary_img = r.get('jp_image') or r.get('en_image')
     return f"""
     <div class="spread-pair">
       <div class="top">
@@ -157,7 +161,7 @@ def _render_spread_pair(r: dict) -> str:
         <div class="arb"><span class="label">arb</span>{r.get('arb_score', 0):.2f}</div>
       </div>
       <div class="primary">
-        {_img(r.get('jp_image'), 'jp-thumb')}
+        {_img(primary_img, 'jp-thumb')}
         <div class="body">
           <div class="name">{_esc(r.get('jp_name'))}</div>
           <div class="set">{_esc(r.get('jp_set_name'))}</div>
