@@ -42,27 +42,46 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 .card .links a { color: #8ab4f8; margin-right: 10px; text-decoration: none; }
 .card .links a:hover { text-decoration: underline; }
 .spread-pair { background: #1a1d24; border: 1px solid #2a2f3a;
-               border-radius: 10px; padding: 12px; }
-.spread-pair .header { display: flex; justify-content: space-between;
-                       align-items: baseline; margin-bottom: 10px; }
-.spread-pair .arb { font-size: 20px; font-weight: 700; color: #fbbc04; }
+               border-radius: 10px; padding: 14px; }
+.spread-pair .top { display: flex; justify-content: space-between;
+                    align-items: flex-start; margin-bottom: 12px; gap: 8px; }
+.spread-pair .top .breadcrumb { font-size: 11px; color: #9aa0a6;
+                                line-height: 1.5; }
+.spread-pair .arb { font-size: 22px; font-weight: 700; color: #fbbc04;
+                    line-height: 1; white-space: nowrap; }
 .spread-pair .arb .label { font-size: 10px; color: #9aa0a6; font-weight: 400;
                            margin-right: 4px; }
-.spread-pair .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.spread-pair .side { display: flex; gap: 8px; min-width: 0; }
-.spread-pair .side img { width: 60px; height: auto; border-radius: 4px;
-                          flex-shrink: 0; background: #0f1115; }
-.spread-pair .side .name { font-size: 12px; font-weight: 600;
-                            white-space: nowrap; overflow: hidden;
-                            text-overflow: ellipsis; }
-.spread-pair .side .set  { font-size: 10px; color: #9aa0a6; }
-.spread-pair .side .price { font-size: 14px; font-weight: 600;
-                             margin-top: 4px; }
-.spread-pair .label-row { display: flex; gap: 16px; font-size: 11px;
-                          color: #9aa0a6; margin-top: 8px; }
-.spread-pair .label-row .v { color: #e8eaed; font-weight: 600; }
-.spread-pair .links { font-size: 11px; margin-top: 8px; }
-.spread-pair .links a { color: #8ab4f8; margin-right: 10px; text-decoration: none; }
+.spread-pair .primary { display: flex; gap: 12px; margin-bottom: 12px; }
+.spread-pair .primary img { width: 110px; height: auto; border-radius: 6px;
+                            background: #0f1115; flex-shrink: 0; }
+.spread-pair .primary .body { flex: 1; min-width: 0; }
+.spread-pair .primary .name { font-size: 16px; font-weight: 700;
+                              margin-bottom: 2px; overflow: hidden;
+                              white-space: nowrap; text-overflow: ellipsis; }
+.spread-pair .primary .set  { font-size: 11px; color: #9aa0a6; margin-bottom: 8px; }
+.spread-pair .primary .price { font-size: 22px; font-weight: 700; color: #34a853; }
+.spread-pair .primary .source { font-size: 11px; color: #9aa0a6;
+                                font-weight: 400; margin-left: 6px; }
+.spread-pair .reference { display: flex; gap: 8px;
+                          background: #14171c; border: 1px solid #2a2f3a;
+                          border-radius: 6px; padding: 8px; margin-bottom: 10px; }
+.spread-pair .reference img { width: 40px; height: auto; border-radius: 3px;
+                              background: #0f1115; flex-shrink: 0; }
+.spread-pair .reference .ref-body { flex: 1; min-width: 0; font-size: 11px;
+                                    line-height: 1.6; }
+.spread-pair .reference .ref-name { font-weight: 600; color: #cfd2d6; }
+.spread-pair .reference .ref-meta { color: #9aa0a6; }
+.spread-pair .reference .ref-stats { margin-top: 4px; }
+.spread-pair .links { display: flex; flex-wrap: wrap; gap: 8px;
+                      font-size: 12px; margin-top: 4px; }
+.spread-pair .links a { color: #8ab4f8; text-decoration: none; }
+.spread-pair .links a.primary-link {
+    background: #1a73e8; color: #fff; padding: 6px 12px;
+    border-radius: 6px; font-weight: 600;
+}
+.spread-pair .links a.primary-link:hover { background: #1765cc; }
+.spread-pair .links a.ref-link { padding: 6px 0; }
+.spread-pair .links a:hover { text-decoration: underline; }
 .empty { color: #9aa0a6; font-style: italic; padding: 12px 0; }
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
@@ -116,51 +135,52 @@ def _render_surge_card(r: dict) -> str:
 
 
 def _render_spread_pair(r: dict) -> str:
+    jp_source = _esc(r.get('jp_source') or '')
+    primary_label = "スニダンで見る →" if jp_source == "snkrdunk" else f"{jp_source} で見る →" if jp_source else "JP価格元 →"
+    jp_url = r.get('jp_url')
+    primary_link_html = (
+        f'<a class="primary-link" href="{_esc(jp_url)}" target="_blank" rel="noopener">{primary_label}</a>'
+        if jp_url else ""
+    )
+    ref_links = " &middot; ".join(filter(None, [
+        f'<a class="ref-link" href="{_esc(r["cardmarket_url"])}" target="_blank" rel="noopener">Cardmarket</a>'
+            if r.get("cardmarket_url") else "",
+        f'<a class="ref-link" href="{_esc(r["tcgplayer_url"])}" target="_blank" rel="noopener">TCGPlayer</a>'
+            if r.get("tcgplayer_url") else "",
+    ]))
     return f"""
     <div class="spread-pair">
-      <div class="header">
-        <div>
-          <div style="font-size:11px;color:#9aa0a6;">
-            {_esc(r.get('en_name'))} #{_esc(r.get('en_number'))}
-            → {_esc(r.get('jp_name'))} #{_esc(r.get('jp_local_id'))}
-          </div>
+      <div class="top">
+        <div class="breadcrumb">
+          仕入れ候補 &middot; #{_esc(r.get('jp_local_id'))} {_esc(r.get('jp_rarity'))}
         </div>
         <div class="arb"><span class="label">arb</span>{r.get('arb_score', 0):.2f}</div>
       </div>
-      <div class="row">
-        <div class="side">
-          {_img(r.get('en_image'), 'thumb')}
-          <div style="min-width:0;flex:1;">
-            <div class="name">{_esc(r.get('en_name'))}</div>
-            <div class="set">{_esc(r.get('en_set_name'))}</div>
-            <div class="price">¥{r.get('en_price_jpy', 0):,.0f}
-              <span style="color:#9aa0a6;font-weight:400;font-size:10px;">
-                (€{r.get('en_avg1_eur', 0):.2f})
-              </span>
-            </div>
-          </div>
-        </div>
-        <div class="side">
-          {_img(r.get('jp_image'), 'thumb')}
-          <div style="min-width:0;flex:1;">
-            <div class="name">{_esc(r.get('jp_name'))}</div>
-            <div class="set">{_esc(r.get('jp_set_name'))} — {_esc(r.get('jp_rarity'))}</div>
-            <div class="price">¥{r.get('jp_price_jpy', 0):,.0f}
-              <span style="color:#9aa0a6;font-weight:400;font-size:10px;">
-                ({_esc(r.get('jp_source'))})
-              </span>
-            </div>
+      <div class="primary">
+        {_img(r.get('jp_image'), 'jp-thumb')}
+        <div class="body">
+          <div class="name">{_esc(r.get('jp_name'))}</div>
+          <div class="set">{_esc(r.get('jp_set_name'))}</div>
+          <div class="price">¥{r.get('jp_price_jpy', 0):,.0f}
+            <span class="source">({jp_source or '出典不明'})</span>
           </div>
         </div>
       </div>
-      <div class="label-row">
-        <div><span>surge 30d</span> <span class="v">{_pct(r.get('surge_30d', 0))}</span></div>
-        <div><span>spread</span> <span class="v">{_pct(r.get('spread', 0))}</span></div>
+      <div class="reference">
+        {_img(r.get('en_image'), 'en-thumb')}
+        <div class="ref-body">
+          <div><span class="ref-meta">海外参考:</span>
+               <span class="ref-name">{_esc(r.get('en_name'))}</span>
+               <span class="ref-meta">({_esc(r.get('en_set_name'))})</span></div>
+          <div class="ref-meta">avg1 €{r.get('en_avg1_eur', 0):.2f}
+               → 換算 ¥{r.get('en_price_jpy', 0):,.0f}</div>
+          <div class="ref-stats">surge 30d {_pct(r.get('surge_30d', 0))}
+               &middot; spread {_pct(r.get('spread', 0))}</div>
+        </div>
       </div>
       <div class="links">
-        {_link(r.get('cardmarket_url'), 'Cardmarket')}
-        {_link(r.get('tcgplayer_url'), 'TCGPlayer')}
-        {_link(r.get('jp_url'), 'Snkrdunk')}
+        {primary_link_html}
+        {ref_links}
       </div>
     </div>"""
 
