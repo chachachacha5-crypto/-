@@ -98,6 +98,13 @@ def main(argv: list[str] | None = None) -> int:
                           help="Show every candidate link, not only the highest-scored")
     p_spread.add_argument("--json", action="store_true")
 
+    p_jpimg = sub.add_parser("jp-image",
+                             help="Manually set or clear a JP card's image URL")
+    p_jpimg.add_argument("action", choices=["set", "clear"])
+    p_jpimg.add_argument("jp_card_id", help="e.g. sv3J-115")
+    p_jpimg.add_argument("url", nargs="?", default=None,
+                         help="Image URL (required for 'set')")
+
     p_report = sub.add_parser("report",
                               help="Write a self-contained HTML report (surge + spread)")
     p_report.add_argument("--out", default="pokesurge_report.html",
@@ -199,6 +206,30 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(rows, indent=2, default=str))
         else:
             _print_spread(rows)
+        return 0
+
+    if args.cmd == "jp-image":
+        from .db import connect
+        if args.action == "set":
+            if not args.url:
+                print("Error: url required for 'set'", file=sys.stderr)
+                return 2
+            with connect(args.db) as conn:
+                cur = conn.execute(
+                    "UPDATE jp_cards SET image_url = ? WHERE id = ?",
+                    (args.url, args.jp_card_id),
+                )
+            if cur.rowcount == 0:
+                print(f"No jp_card found with id={args.jp_card_id}", file=sys.stderr)
+                return 1
+            print(f"Set image for {args.jp_card_id}")
+        else:
+            with connect(args.db) as conn:
+                conn.execute(
+                    "UPDATE jp_cards SET image_url = '' WHERE id = ?",
+                    (args.jp_card_id,),
+                )
+            print(f"Cleared image for {args.jp_card_id}")
         return 0
 
     if args.cmd == "report":

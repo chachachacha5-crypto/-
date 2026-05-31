@@ -158,16 +158,21 @@ def _render_spread_pair(r: dict) -> str:
         f'<a class="ref-link" href="{_esc(r["tcgplayer_url"])}" target="_blank" rel="noopener">TCGPlayer</a>'
             if r.get("tcgplayer_url") else "",
     ]))
-    # JP image from TCGdex if available; otherwise a clearly-labelled
-    # placeholder. Never fall back to the EN art — that misleads the eye
-    # into thinking the user is looking at the Japanese card.
+    jp_name_attr = _esc(r.get("jp_name") or "?")
     if r.get('jp_image'):
-        primary_img_html = f'<img class="jp-thumb" src="{_esc(r["jp_image"])}" alt="" loading="lazy">'
+        # If the image fails to load (TCGdex's JP coverage is patchy),
+        # jpImgFail() in the page script swaps in a placeholder rather
+        # than letting the broken-image icon show.
+        primary_img_html = (
+            f'<img class="jp-thumb" src="{_esc(r["jp_image"])}" '
+            f'data-jp-name="{jp_name_attr}" '
+            f'onerror="jpImgFail(this)" alt="" loading="lazy">'
+        )
     else:
         primary_img_html = (
             f'<div class="jp-placeholder">'
             f'<div class="tag">JP 画像</div>'
-            f'<div class="nm">{_esc(r.get("jp_name") or "?")}</div>'
+            f'<div class="nm">{jp_name_attr}</div>'
             f'</div>'
         )
     return f"""
@@ -245,6 +250,16 @@ def render_html(
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pokesurge report</title>
 <style>{CSS}</style>
+<script>
+function jpImgFail(img) {{
+  var name = img.getAttribute('data-jp-name') || '?';
+  var d = document.createElement('div');
+  d.className = 'jp-placeholder';
+  d.innerHTML = '<div class="tag">JP 画像</div><div class="nm"></div>';
+  d.lastChild.textContent = name;
+  img.replaceWith(d);
+}}
+</script>
 </head>
 <body>
 <header>
