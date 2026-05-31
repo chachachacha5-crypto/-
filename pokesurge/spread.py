@@ -75,9 +75,11 @@ def rank_arbitrage(
     )
     SELECT c.id    AS en_id,    c.name    AS en_name,
            c.number AS en_number, c.rarity AS en_rarity,
+           c.image_small AS en_image,
            s.name  AS en_set_name,
            jp.id   AS jp_id,    jp.name   AS jp_name,
            jp.local_id AS jp_local_id, jp.rarity AS jp_rarity,
+           jp.image_url AS jp_image,
            js.name AS jp_set_name,
            cl.score AS link_score, cl.reason AS link_reason,
            en_cm.avg1  AS en_avg1_eur,

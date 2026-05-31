@@ -7,7 +7,7 @@ import sys
 
 from . import (
     catalog, dex, jp_catalog, jp_prices, linker, prices,
-    snkrdunk, spread, surge,
+    report, snkrdunk, spread, surge,
 )
 from .db import DEFAULT_DB, init_db
 
@@ -98,6 +98,19 @@ def main(argv: list[str] | None = None) -> int:
                           help="Show every candidate link, not only the highest-scored")
     p_spread.add_argument("--json", action="store_true")
 
+    p_report = sub.add_parser("report",
+                              help="Write a self-contained HTML report (surge + spread)")
+    p_report.add_argument("--out", default="pokesurge_report.html",
+                          help="Output HTML path (default: pokesurge_report.html)")
+    p_report.add_argument("--top", type=int, default=50)
+    p_report.add_argument("--min-surge", type=float, default=0.10)
+    p_report.add_argument("--min-spread", type=float, default=0.10)
+    p_report.add_argument("--min-eur", type=float, default=2.0)
+    p_report.add_argument("--eur-jpy", type=float, default=None)
+    p_report.add_argument("--surge-window", choices=["7d", "30d"], default="30d")
+    p_report.add_argument("--open", action="store_true",
+                          help="Auto-open the report in your browser")
+
     args = parser.parse_args(argv)
 
     if args.cmd == "init":
@@ -186,6 +199,16 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(rows, indent=2, default=str))
         else:
             _print_spread(rows)
+        return 0
+
+    if args.cmd == "report":
+        path = report.write_report(
+            args.db, args.out, open_browser=args.open,
+            top=args.top, min_surge=args.min_surge, min_spread=args.min_spread,
+            min_eur=args.min_eur, eur_jpy=args.eur_jpy,
+            surge_window=args.surge_window,
+        )
+        print(f"Wrote {path}")
         return 0
 
     return 1
