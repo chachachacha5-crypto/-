@@ -78,6 +78,16 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 .spread-pair .links a.primary-link:hover { background: #1765cc; }
 .spread-pair .links a.ref-link { padding: 6px 0; }
 .spread-pair .links a:hover { text-decoration: underline; }
+.jp-placeholder { width: 110px; height: 154px; background: #2a2f3a;
+                  border: 1px dashed #3a4150; border-radius: 6px;
+                  display: flex; flex-direction: column;
+                  justify-content: center; align-items: center;
+                  padding: 8px; text-align: center; flex-shrink: 0; }
+.jp-placeholder .tag { font-size: 9px; color: #9aa0a6;
+                       text-transform: uppercase; letter-spacing: 1px;
+                       margin-bottom: 10px; }
+.jp-placeholder .nm { font-size: 12px; color: #e8eaed; font-weight: 600;
+                      line-height: 1.4; word-break: break-word; }
 .empty { color: #9aa0a6; font-style: italic; padding: 12px 0; }
 @media (max-width: 600px) {
   .grid { grid-template-columns: 1fr; }
@@ -87,7 +97,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
 <body>
 <header>
   <h1>pokesurge report (sample)</h1>
-  <div class="meta">generated 2026-05-31 16:35 UTC &middot;
+  <div class="meta">generated 2026-05-31 22:12 UTC &middot;
     surge: 3 cards &middot; spread: 3 pairs &middot; <em>synthetic demo data</em></div>
   <nav>
     <a href="#spread">💴 仕入れ候補 (Spread)</a>
@@ -105,7 +115,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>3.18</div>
       </div>
       <div class="primary">
-        <img class="jp-thumb" src="https://images.pokemontcg.io/sv3/215.png" alt="" loading="lazy">
+        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">リザードンex</div></div>
         <div class="body">
           <div class="name">リザードンex</div>
           <div class="set">黒炎の支配者</div>
@@ -135,7 +145,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>0.81</div>
       </div>
       <div class="primary">
-        <img class="jp-thumb" src="https://images.pokemontcg.io/sv2/241.png" alt="" loading="lazy">
+        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">デカヌチャン</div></div>
         <div class="body">
           <div class="name">デカヌチャン</div>
           <div class="set">クレイバースト</div>
@@ -165,7 +175,7 @@ section .sub { color: #9aa0a6; font-size: 12px; margin: 0 0 16px 0; }
         <div class="arb"><span class="label">arb</span>0.60</div>
       </div>
       <div class="primary">
-        <img class="jp-thumb" src="https://images.pokemontcg.io/sv8/238.png" alt="" loading="lazy">
+        <div class="jp-placeholder"><div class="tag">JP 画像</div><div class="nm">ピカチュウex</div></div>
         <div class="body">
           <div class="name">ピカチュウex</div>
           <div class="set">テラスタルフェスex</div>
