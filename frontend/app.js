@@ -58,10 +58,35 @@ async function init() {
     for (const k of FEE_FIELDS) if (defaults[k] != null) $(k).value = defaults[k];
   } catch (e) {}
 
+  // 為替レートを自動取得して USD/JPY 欄に反映
+  await loadFxRate(false);
+
+  $("fx-refresh").addEventListener("click", () => loadFxRate(true));
   $("search-btn").addEventListener("click", doSearch);
   $("query").addEventListener("keydown", (e) => e.key === "Enter" && doSearch());
   $("calc-btn").addEventListener("click", calculate);
   $("csv-file").addEventListener("change", importCsv);
+}
+
+async function loadFxRate(force) {
+  const btn = $("fx-refresh");
+  const status = $("fx-status");
+  btn.classList.add("spinning");
+  status.textContent = "為替レートを取得中…";
+  try {
+    const fx = await api(`/api/fx-rate?force=${force ? "true" : "false"}`);
+    $("usd_jpy").value = fx.rate;
+    if (fx.is_live) {
+      const t = new Date(fx.fetched_at * 1000).toLocaleTimeString("ja-JP");
+      status.textContent = `為替 1 USD = ${fx.rate} 円（出典: ${fx.source} / ${t} 取得）`;
+    } else {
+      status.textContent = `⚠ 為替の自動取得に失敗し既定値 ${fx.rate} 円を使用中。${fx.note}`;
+    }
+  } catch (e) {
+    status.textContent = "為替レートの取得に失敗しました: " + e.message;
+  } finally {
+    btn.classList.remove("spinning");
+  }
 }
 
 async function doSearch() {

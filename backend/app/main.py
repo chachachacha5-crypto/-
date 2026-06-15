@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from . import ebay
+from . import ebay, fx
 from .config import get_settings
 from .models import FeeProfile, ProfitInput, ProfitResult, SearchResponse
 from .profit import breakeven_ebay_price_usd, calculate_profit
@@ -39,6 +39,12 @@ async def health() -> dict:
 @app.get("/api/categories")
 async def categories() -> dict:
     return {"categories": ebay.CATEGORIES}
+
+
+@app.get("/api/fx-rate")
+async def fx_rate(force: bool = False) -> dict:
+    """USD/JPY の為替レートを自動取得する（失敗時は既定値にフォールバック）。"""
+    return await fx.get_usd_jpy(get_settings(), force=force)
 
 
 @app.get("/api/defaults", response_model=FeeProfile)

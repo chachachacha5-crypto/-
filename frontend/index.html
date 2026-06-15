@@ -20,7 +20,12 @@
       <details class="card" open>
         <summary>① レート・手数料の設定</summary>
         <div class="grid fees">
-          <label>為替 USD/JPY<input id="usd_jpy" type="number" step="0.1" /></label>
+          <label>為替 USD/JPY
+            <span class="fx-field">
+              <input id="usd_jpy" type="number" step="0.1" />
+              <button id="fx-refresh" type="button" class="icon-btn" title="為替レートを自動取得">⟳</button>
+            </span>
+          </label>
           <label>eBay 落札手数料 %<input id="ebay_fvf_percent" type="number" step="0.05" /></label>
           <label>固定手数料 USD<input id="ebay_fixed_fee_usd" type="number" step="0.05" /></label>
           <label>国際取引手数料 %<input id="intl_fee_percent" type="number" step="0.05" /></label>
@@ -30,6 +35,7 @@
         <p class="hint">
           ※ 手数料は eBay の一般的な目安。実際のカテゴリ・ストア契約・配送条件に合わせて調整してください。
         </p>
+        <p id="fx-status" class="hint"></p>
       </details>
 
       <!-- 検索 -->

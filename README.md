@@ -66,6 +66,7 @@ uvicorn backend.app.main:app --reload --port 8000
 |---|---|---|
 | GET  | `/api/health` | 稼働状況・eBay 接続モード |
 | GET  | `/api/categories` | トイ&ホビーのカテゴリ一覧 |
+| GET  | `/api/fx-rate?force=` | USD/JPY を自動取得（失敗時は既定値）|
 | GET  | `/api/defaults` | 手数料・レートの既定値 |
 | GET  | `/api/search?q=&category_id=&limit=` | eBay 相場検索 |
 | POST | `/api/profit` | 1 商品の利益計算 |
@@ -98,5 +99,7 @@ tests/        利益計算のテスト
 
 - 現状の相場は「出品中(active)」価格。実売価格(sold)は eBay の
   Marketplace Insights API（要申請）で取得すると精度が上がります。
-- 為替レートは既定値/手動。為替 API を繋ぐと自動更新できます。
+- 為替レート(USD/JPY)は起動時に無料 API（`open.er-api.com` → `api.frankfurter.app`）
+  から自動取得し、UI の ⟳ ボタンで更新できます。取得失敗時は `DEFAULT_USD_JPY` に
+  フォールバックします。egress allowlist 制の環境では上記ホストの許可が必要です。
 - 関税・輸入消費税・返品率などは未計上。運用に合わせて拡張してください。
