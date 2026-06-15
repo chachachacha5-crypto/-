@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>eBay × メルカリ せどりリサーチ（トイ&ホビー）</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div>
+        <h1>eBay × メルカリ せどりリサーチ</h1>
+        <p class="subtitle">メルカリ仕入れ → eBay US 販売 / ジャンル: トイ&ホビー</p>
+      </div>
+      <span id="mode-badge" class="badge">…</span>
+    </header>
+
+    <main>
+      <!-- 手数料・レート設定 -->
+      <details class="card" open>
+        <summary>① レート・手数料の設定</summary>
+        <div class="grid fees">
+          <label>為替 USD/JPY<input id="usd_jpy" type="number" step="0.1" /></label>
+          <label>eBay 落札手数料 %<input id="ebay_fvf_percent" type="number" step="0.05" /></label>
+          <label>固定手数料 USD<input id="ebay_fixed_fee_usd" type="number" step="0.05" /></label>
+          <label>国際取引手数料 %<input id="intl_fee_percent" type="number" step="0.05" /></label>
+          <label>円転手数料 %<input id="payout_fx_percent" type="number" step="0.1" /></label>
+          <label>広告手数料 %<input id="ad_fee_percent" type="number" step="0.1" /></label>
+        </div>
+        <p class="hint">
+          ※ 手数料は eBay の一般的な目安。実際のカテゴリ・ストア契約・配送条件に合わせて調整してください。
+        </p>
+      </details>
+
+      <!-- 検索 -->
+      <section class="card">
+        <h2>② eBay US の相場を検索</h2>
+        <div class="search-row">
+          <input id="query" type="text" placeholder="例: gundam rg, pokemon booster box, nendoroid" />
+          <select id="category"></select>
+          <button id="search-btn">検索</button>
+        </div>
+        <p class="hint">
+          共通の仕入れ送料を一括適用:
+          国内送料 <input id="default_dom_ship" type="number" class="mini" value="0" /> 円 /
+          国際送料 <input id="default_intl_ship" type="number" class="mini" value="2000" /> 円
+        </p>
+        <div class="csv-row">
+          メルカリ候補CSVを取込:
+          <input id="csv-file" type="file" accept=".csv" />
+          <a href="/sample_mercari.csv" download>サンプルCSV</a>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <!-- 結果テーブル -->
+      <section class="card">
+        <div class="results-head">
+          <h2>③ 利益計算</h2>
+          <button id="calc-btn">利益を一括計算</button>
+        </div>
+        <div class="table-wrap">
+          <table id="results">
+            <thead>
+              <tr>
+                <th>商品</th>
+                <th>eBay価格<br />(USD)</th>
+                <th>メルカリ仕入<br />(円)</th>
+                <th>国内送料</th>
+                <th>国際送料</th>
+                <th>純売上<br />(円)</th>
+                <th>総コスト<br />(円)</th>
+                <th>利益<br />(円)</th>
+                <th>利益率</th>
+                <th>ROI</th>
+              </tr>
+            </thead>
+            <tbody id="results-body">
+              <tr class="empty"><td colspan="10">検索するかCSVを取り込むと、ここに候補が並びます。</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <p>
+        利益 = 純売上(円) − 総コスト(円)。純売上は eBay 手数料・円転手数料控除後。
+        相場は現在出品中(active)価格の目安です。
+      </p>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
